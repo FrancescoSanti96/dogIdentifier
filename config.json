@@ -1,0 +1,43 @@
+{
+    "data": {
+        "breed_dataset_path": "data/breeds",
+        "my_dog_dataset_path": "data/my_dog_vs_others",
+        "image_size": [224, 224],
+        "batch_size": 64,
+        "num_workers": 8,
+        "train_split": 0.7,
+        "val_split": 0.15,
+        "test_split": 0.15
+    },
+    "model": {
+        "breed_classifier": {
+            "num_classes": 120,
+            "dropout_rate": 0.5,
+            "use_batch_norm": true
+        },
+        "dog_identifier": {
+            "num_classes": 2,
+            "dropout_rate": 0.3,
+            "use_batch_norm": true
+        }
+    },
+    "training": {
+        "learning_rate": 0.0005,
+        "num_epochs": 100,
+        "early_stopping_patience": 10,
+        "save_best_model": true,
+        "use_tensorboard": true
+    },
+    "augmentation": {
+        "horizontal_flip": true,
+        "rotation": 15,
+        "brightness_contrast": [0.8, 1.2],
+        "color_jitter": [0.1, 0.1, 0.1, 0.1]
+    },
+    "paths": {
+        "output_dir": "outputs",
+        "checkpoints_dir": "outputs/checkpoints",
+        "logs_dir": "outputs/logs",
+        "plots_dir": "outputs/plots"
+    }
+} 
