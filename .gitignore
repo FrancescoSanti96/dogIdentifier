@@ -22,9 +22,9 @@ wheels/
 MANIFEST
 
 # PyTorch
-*.pth
-*.pt
-*.ckpt
+# *.pth              # Commentato: vogliamo includere modelli addestrati
+# *.pt               # Commentato: vogliamo includere modelli addestrati
+# *.ckpt             # Commentato: vogliamo includere modelli addestrati
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -55,11 +55,11 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-outputs/
 data/
 *.log
 logs/
-checkpoints/
+# outputs/          # Commentato: vogliamo includere modelli addestrati
+
 plots/
 
 # Temporary files
