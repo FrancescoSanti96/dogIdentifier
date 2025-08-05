@@ -18,6 +18,8 @@ from collections import defaultdict
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.breed_classifier import create_breed_classifier
+from utils.dataloader import create_dataloaders
+from utils.config_helper import ConfigHelper
 
 def load_model():
     """Carica il modello addestrato"""
@@ -86,9 +88,9 @@ def test_single_image(model, image_path, breed_names, transform):
         return {'error': str(e)}
 
 def test_validation(mode='all'):
-    """Test principale di validazione"""
-    print("🧪 Test di Validazione Progetto")
-    print("=" * 50)
+    """Test principale di validazione con test set separato"""
+    print("🧪 Test di Validazione Progetto (Test Set Separato)")
+    print("=" * 60)
     
     # Carica modello
     model, checkpoint = load_model()
@@ -98,106 +100,171 @@ def test_validation(mode='all'):
     print(f"📊 Accuracy training: {checkpoint['train_acc']:.2f}%")
     print(f"📊 Accuracy validation: {checkpoint['val_acc']:.2f}%")
     
-    # Setup transforms
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+    # Carica dataloaders con split 70/15/15
+    config = ConfigHelper('config.json')
+    train_loader, val_loader, test_loader = create_dataloaders(config, max_breeds=10)
     
-    # Determina razze da testare
+    print(f"\n📊 Dataset split:")
+    print(f"   Training: {len(train_loader.dataset)} samples")
+    print(f"   Validation: {len(val_loader.dataset)} samples")
+    print(f"   Test: {len(test_loader.dataset)} samples")
+    
+    # Determina modalità di test
     if mode == 'australian':
-        test_breeds = ['Australian_Shepherd_Dog']
+        print(f"\n🔍 Testando Australian Shepherd su test set separato...")
+        test_australian_on_separated_set(model, test_loader, breed_names)
     elif mode == 'sample':
-        test_breeds = ['Australian_Shepherd_Dog', 'Afghan_hound', 'Bernese_mountain_dog']
+        print(f"\n🔍 Testando 3 razze su test set separato...")
+        test_sample_on_separated_set(model, test_loader, breed_names)
     else:  # all
-        test_breeds = breed_names
+        print(f"\n🔍 Testando tutte le razze su test set separato...")
+        test_all_on_separated_set(model, test_loader, breed_names)
+def test_australian_on_separated_set(model, test_loader, breed_names):
+    """Test Australian Shepherd su test set separato"""
+    model.eval()
+    australian_idx = breed_names.index('Australian_Shepherd_Dog')
     
-    print(f"\n🔍 Testando {len(test_breeds)} razze in modalità '{mode}'...")
+    correct = 0
+    total = 0
+    confidences = []
     
-    # Statistiche per razza
-    breed_stats = defaultdict(list)
+    with torch.no_grad():
+        for batch_idx, (images, labels) in enumerate(test_loader):
+            outputs = model(images)
+            probabilities = F.softmax(outputs, dim=1)
+            
+            # Filtra solo Australian Shepherd
+            for i in range(labels.size(0)):
+                if labels[i].item() == australian_idx:
+                    total += 1
+                    confidence = probabilities[i][australian_idx].item() * 100
+                    confidences.append(confidence)
+                    
+                    # Top prediction
+                    _, predicted = torch.max(outputs[i], 0)
+                    if predicted == australian_idx:
+                        correct += 1
+    
+    accuracy = (correct / total) * 100 if total > 0 else 0
+    avg_confidence = np.mean(confidences) if confidences else 0
+    
+    print(f"🐕 Australian Shepherd Dog:")
+    print(f"  ✅ Test set separato: {total} immagini")
+    print(f"  📊 Accuracy: {accuracy:.1f}% ({correct}/{total})")
+    print(f"  📊 Avg confidence: {avg_confidence:.1f}%")
+    
+    return accuracy, avg_confidence
+
+def test_sample_on_separated_set(model, test_loader, breed_names):
+    """Test 3 razze su test set separato"""
+    model.eval()
+    test_breeds = ['Australian_Shepherd_Dog', 'Afghan_hound', 'Bernese_mountain_dog']
+    breed_indices = [breed_names.index(breed) for breed in test_breeds]
+    
+    breed_stats = defaultdict(lambda: {'correct': 0, 'total': 0, 'confidences': []})
+    
+    with torch.no_grad():
+        for batch_idx, (images, labels) in enumerate(test_loader):
+            outputs = model(images)
+            probabilities = F.softmax(outputs, dim=1)
+            
+            for i in range(labels.size(0)):
+                label = labels[i].item()
+                if label in breed_indices:
+                    breed_name = breed_names[label]
+                    breed_stats[breed_name]['total'] += 1
+                    
+                    confidence = probabilities[i][label].item() * 100
+                    breed_stats[breed_name]['confidences'].append(confidence)
+                    
+                    # Top prediction
+                    _, predicted = torch.max(outputs[i], 0)
+                    if predicted == label:
+                        breed_stats[breed_name]['correct'] += 1
+    
+    # Risultati
+    print(f"\n📊 RISULTATI TEST SET SEPARATO")
+    print(f"=" * 60)
+    
     total_correct = 0
     total_images = 0
     
-    for breed in test_breeds:
-        print(f"\n🐕 Testando {breed}:")
-        images = get_test_images(breed, 3)
+    for breed_name in test_breeds:
+        stats = breed_stats[breed_name]
+        accuracy = (stats['correct'] / stats['total']) * 100 if stats['total'] > 0 else 0
+        avg_confidence = np.mean(stats['confidences']) if stats['confidences'] else 0
         
-        if not images:
-            print(f"  ❌ Nessuna immagine trovata per {breed}")
-            continue
+        print(f"🐕 {breed_name}:")
+        print(f"  📊 Accuracy: {accuracy:.1f}% ({stats['correct']}/{stats['total']})")
+        print(f"  📊 Avg confidence: {avg_confidence:.1f}%")
         
-        breed_correct = 0
-        for i, img_path in enumerate(images):
-            result = test_single_image(model, img_path, breed_names, transform)
-            
-            if 'error' in result:
-                print(f"  ❌ Errore immagine {i+1}: {result['error']}")
-                continue
-            
-            correct = result['is_top3']
-            confidence = result['correct_confidence']
-            
-            if correct:
-                breed_correct += 1
-                total_correct += 1
-                marker = "✅"
-            else:
-                marker = "❌"
-            
-            print(f"  {marker} Immagine {i+1}: {confidence:.1f}% confidence")
-            
-            breed_stats[breed].append({
-                'confidence': confidence,
-                'correct': correct
-            })
-        
-        total_images += len(images)
-        accuracy = (breed_correct / len(images)) * 100 if images else 0
-        print(f"  📊 Accuracy {breed}: {accuracy:.1f}% ({breed_correct}/{len(images)})")
-    
-    # Risultati finali
-    print(f"\n" + "="*50)
-    print(f"📊 RISULTATI FINALI")
-    print(f"="*50)
+        total_correct += stats['correct']
+        total_images += stats['total']
     
     overall_accuracy = (total_correct / total_images) * 100 if total_images > 0 else 0
-    print(f"🎯 Accuracy complessiva: {overall_accuracy:.1f}% ({total_correct}/{total_images})")
-    
-    # Analisi per razza
-    print(f"\n📋 Analisi per razza:")
-    for breed in test_breeds:
-        if breed in breed_stats:
-            confidences = [r['confidence'] for r in breed_stats[breed]]
-            avg_confidence = np.mean(confidences)
-            correct_count = sum(1 for r in breed_stats[breed] if r['correct'])
-            total_count = len(breed_stats[breed])
-            accuracy = (correct_count / total_count) * 100 if total_count > 0 else 0
-            
-            print(f"  {breed}: {accuracy:.1f}% accuracy, {avg_confidence:.1f}% avg confidence")
+    print(f"\n🎯 Accuracy complessiva: {overall_accuracy:.1f}% ({total_correct}/{total_images})")
     
     # Raccomandazione
     print(f"\n💡 RACCOMANDAZIONE:")
     if overall_accuracy >= 70:
         print(f"  ✅ PROSEGUI CON IL PROGETTO (Accuracy {overall_accuracy:.1f}% >= 70%)")
     elif overall_accuracy >= 50:
-        print(f"  ⚠️  PROSEGUI MA MIGLIORA IL DATASET (Accuracy {overall_accuracy:.1f}%)")
+        print(f"  ⚠️  PROSEGUI MA MIGLIORA IL MODELLO (Accuracy {overall_accuracy:.1f}%)")
     else:
         print(f"  ❌ NON PROCEDERE - MIGLIORA PRIMA IL MODELLO (Accuracy {overall_accuracy:.1f}% < 50%)")
+
+def test_all_on_separated_set(model, test_loader, breed_names):
+    """Test tutte le razze su test set separato"""
+    model.eval()
+    breed_stats = defaultdict(lambda: {'correct': 0, 'total': 0, 'confidences': []})
     
-    # Focus su Australian Shepherd
-    if 'Australian_Shepherd_Dog' in breed_stats:
-        aus_stats = breed_stats['Australian_Shepherd_Dog']
-        aus_accuracy = sum(1 for r in aus_stats if r['correct']) / len(aus_stats) * 100
-        aus_avg_conf = np.mean([r['confidence'] for r in aus_stats])
-        
-        print(f"\n🐕 Australian Shepherd Dog:")
-        print(f"  Accuracy: {aus_accuracy:.1f}%")
-        print(f"  Avg confidence: {aus_avg_conf:.1f}%")
-        
-        if aus_accuracy < 50:
-            print(f"  ⚠️  Australian Shepherd ha performance bassa - aggiungi più immagini!")
+    with torch.no_grad():
+        for batch_idx, (images, labels) in enumerate(test_loader):
+            outputs = model(images)
+            probabilities = F.softmax(outputs, dim=1)
+            
+            for i in range(labels.size(0)):
+                label = labels[i].item()
+                breed_name = breed_names[label]
+                breed_stats[breed_name]['total'] += 1
+                
+                confidence = probabilities[i][label].item() * 100
+                breed_stats[breed_name]['confidences'].append(confidence)
+                
+                # Top prediction
+                _, predicted = torch.max(outputs[i], 0)
+                if predicted == label:
+                    breed_stats[breed_name]['correct'] += 1
+    
+    # Risultati
+    print(f"\n📊 RISULTATI TEST SET SEPARATO")
+    print(f"=" * 60)
+    
+    total_correct = 0
+    total_images = 0
+    
+    for breed_name in breed_names:
+        stats = breed_stats[breed_name]
+        if stats['total'] > 0:
+            accuracy = (stats['correct'] / stats['total']) * 100
+            avg_confidence = np.mean(stats['confidences'])
+            
+            print(f"🐕 {breed_name}: {accuracy:.1f}% accuracy, {avg_confidence:.1f}% avg confidence")
+            
+            total_correct += stats['correct']
+            total_images += stats['total']
+    
+    overall_accuracy = (total_correct / total_images) * 100 if total_images > 0 else 0
+    print(f"\n🎯 Accuracy complessiva: {overall_accuracy:.1f}% ({total_correct}/{total_images})")
+    
+    # Raccomandazione
+    print(f"\n💡 RACCOMANDAZIONE:")
+    if overall_accuracy >= 70:
+        print(f"  ✅ PROSEGUI CON IL PROGETTO (Accuracy {overall_accuracy:.1f}% >= 70%)")
+    elif overall_accuracy >= 50:
+        print(f"  ⚠️  PROSEGUI MA MIGLIORA IL MODELLO (Accuracy {overall_accuracy:.1f}%)")
+    else:
+        print(f"  ❌ NON PROCEDERE - MIGLIORA PRIMA IL MODELLO (Accuracy {overall_accuracy:.1f}% < 50%)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test di validazione del progetto')
