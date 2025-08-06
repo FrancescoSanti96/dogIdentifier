@@ -8,7 +8,6 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split
 import numpy as np
 from tqdm import tqdm
 
@@ -16,7 +15,7 @@ from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.config_helper import ConfigHelper
-from utils.dataloader import DogBreedDataset, get_transforms
+from utils.dataloader import create_dataloaders_from_splits, get_transforms
 from models.breed_classifier import create_breed_classifier
 from utils.early_stopping import EarlyStopping
 
@@ -29,8 +28,8 @@ def quick_train():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    # Definisco data_dir qui per evitare NameError
-    data_dir = 'data/breeds'
+    # Definisco data_dir per il quick test con Australian Shepherd
+    data_dir = 'data/quick_splits'  # Usa il dataset con splits separati incluso Australian Shepherd
 
     # Configurazione intermedia
     num_epochs = 12  # Epoche intermedie
@@ -38,45 +37,30 @@ def quick_train():
     learning_rate = 0.0008  # Learning rate intermedio
     patience = 7  # Early stopping patience intermedia
     
-    # Carica dataset
-    print("Caricando dataset...")
-    transform, _ = get_transforms((224, 224))
-    full_dataset = DogBreedDataset(data_dir, transform=transform)
-    
-    # Riduci dataset per test veloce (solo prime 10 razze)
-    breed_names = full_dataset.get_breed_names()
-    if len(breed_names) > 10:
-        print(f"Usando solo prime 10 razze per test veloce")
-        # Filtra solo prime 10 razze
-        filtered_indices = []
-        for i, (img_path, label) in enumerate(zip(full_dataset.images, full_dataset.labels)):
-            if label < 10:  # Solo prime 10 classi
-                filtered_indices.append(i)
-        
-        # Crea subset
-        from torch.utils.data import Subset
-        subset_dataset = Subset(full_dataset, filtered_indices)
-        num_classes = 10
-    else:
-        subset_dataset = full_dataset
-        num_classes = len(breed_names)
-    
-    # Split dataset
-    total_size = len(subset_dataset)
-    train_size = int(0.7 * total_size)
-    val_size = int(0.15 * total_size)
-    test_size = total_size - train_size - val_size
-    
-    train_dataset, val_dataset, test_dataset = random_split(
-        subset_dataset, [train_size, val_size, test_size]
+    # Carica dataloaders da splits preorganizzati
+    print("Caricando dataset da splits preorganizzati...")
+    train_loader, val_loader, test_loader = create_dataloaders_from_splits(
+        splits_dir=data_dir,
+        batch_size=batch_size,
+        num_workers=2,
+        image_size=(224, 224)
     )
     
-    # Dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+    # Verifica breed names dalla struttura del train set
+    train_dataset = train_loader.dataset
+    breed_names = train_dataset.get_breed_names()
+    print(f"🎯 Razze nel dataset: {breed_names}")
     
-    print(f"Training samples: {len(train_dataset)}")
-    print(f"Validation samples: {len(val_dataset)}")
+    if 'Australian_Shepherd_Dog' in breed_names:
+        print(f"✅ Australian_Shepherd_Dog trovato!")
+    else:
+        print(f"⚠️  Australian_Shepherd_Dog NON trovato nel dataset!")
+    
+    num_classes = len(breed_names)
+    
+    print(f"Training samples: {len(train_loader.dataset)}")
+    print(f"Validation samples: {len(val_loader.dataset)}")
+    print(f"Test samples: {len(test_loader.dataset)}")
     print(f"Classes: {num_classes}")
     
     # Modello con dropout intermedio
@@ -95,6 +79,10 @@ def quick_train():
     
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
     print(f"Starting training for {num_epochs} epochs...")
+    
+    # Initialize accuracy variables for final reporting
+    train_acc = 0.0
+    val_acc = 0.0
     
     # Training loop
     for epoch in range(num_epochs):
@@ -163,17 +151,17 @@ def quick_train():
             break
     
     # Salva modello
-    os.makedirs('outputs/quick_test', exist_ok=True)
+    os.makedirs('outputs/quick_splits', exist_ok=True)
     torch.save({
         'model_state_dict': model.state_dict(),
         'num_classes': num_classes,
         'epoch': num_epochs,
         'train_acc': train_acc,
         'val_acc': val_acc
-    }, 'outputs/quick_test/quick_model.pth')
+    }, 'outputs/quick_splits/quick_model.pth')
     
     print(f"\n✅ Training completato!")
-    print(f"📁 Modello salvato in: outputs/quick_test/quick_model.pth")
+    print(f"📁 Modello salvato in: outputs/quick_splits/quick_model.pth")
     print(f"🎯 Accuracy finale: Train {train_acc:.2f}%, Val {val_acc:.2f}%")
 
 if __name__ == "__main__":

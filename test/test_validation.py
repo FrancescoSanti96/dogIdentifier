@@ -18,17 +18,23 @@ from collections import defaultdict
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.breed_classifier import create_breed_classifier
-from utils.dataloader import create_dataloaders
+from utils.dataloader import create_dataloaders_from_splits
 from utils.config_helper import ConfigHelper
 
 def load_model():
     """Carica il modello addestrato"""
-    model_path = 'outputs/quick_test/quick_model.pth'
+    model_path = 'outputs/quick_splits/quick_model.pth'
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Modello non trovato: {model_path}")
+    
     checkpoint = torch.load(model_path, map_location='cpu')
+    
+    # Usa il numero di classi dal checkpoint
+    num_classes = checkpoint.get('num_classes', 5)
     
     model = create_breed_classifier(
         model_type='simple',
-        num_classes=10,
+        num_classes=num_classes,
         dropout_rate=0.3
     )
     
@@ -38,58 +44,15 @@ def load_model():
     return model, checkpoint
 
 def get_breed_names():
-    """Restituisce i nomi delle prime 10 razze"""
+    """Restituisce i nomi delle 5 razze nel quick dataset"""
     return [
-        'Afghan_hound', 'African_hunting_dog', 'Airedale', 'American_Staffordshire_terrier',
-        'Appenzeller', 'Australian_Shepherd_Dog', 'Australian_terrier', 'Bedlington_terrier',
-        'Bernese_mountain_dog', 'Blenheim_spaniel'
+        'Australian_Shepherd_Dog', 'Japanese_spaniel', 'Lhasa', 
+        'Norwich_terrier', 'miniature_pinscher'
     ]
 
-def get_test_images(breed_name, num_images=3):
-    """Ottiene immagini di test per una razza"""
-    breed_dir = Path(f"data/breeds/{breed_name}")
-    if not breed_dir.exists():
-        return []
-    
-    images = list(breed_dir.glob('*.jpg'))[:num_images]
-    return images
-
-def test_single_image(model, image_path, breed_names, transform):
-    """Testa una singola immagine"""
-    try:
-        image = Image.open(image_path).convert('RGB')
-        input_tensor = transform(image).unsqueeze(0)
-        
-        with torch.no_grad():
-            output = model(input_tensor)
-            probabilities = F.softmax(output, dim=1)
-            
-            # Top 3 predizioni
-            top_probs, top_indices = torch.topk(probabilities, 3)
-        
-        # Trova la razza corretta
-        correct_breed = image_path.parent.name
-        correct_idx = breed_names.index(correct_breed) if correct_breed in breed_names else -1
-        
-        # Confidence per la razza corretta
-        correct_confidence = probabilities[0][correct_idx].item() * 100 if correct_idx >= 0 else 0
-        
-        # È nelle top 3?
-        is_top3 = correct_idx in top_indices[0]
-        
-        return {
-            'correct_breed': correct_breed,
-            'correct_confidence': correct_confidence,
-            'is_top3': is_top3,
-            'top3': [(breed_names[idx], prob.item() * 100) for prob, idx in zip(top_probs[0], top_indices[0])]
-        }
-        
-    except Exception as e:
-        return {'error': str(e)}
-
 def test_validation(mode='all'):
-    """Test principale di validazione con test set separato"""
-    print("🧪 Test di Validazione Progetto (Test Set Separato)")
+    """Test principale di validazione con test set separato - 5 razze quick dataset"""
+    print("🧪 Test di Validazione Progetto - 5 Razze Quick Dataset")
     print("=" * 60)
     
     # Carica modello
@@ -100,9 +63,13 @@ def test_validation(mode='all'):
     print(f"📊 Accuracy training: {checkpoint['train_acc']:.2f}%")
     print(f"📊 Accuracy validation: {checkpoint['val_acc']:.2f}%")
     
-    # Carica dataloaders con split 70/15/15
-    config = ConfigHelper('config.json')
-    train_loader, val_loader, test_loader = create_dataloaders(config, max_breeds=10)
+    # Carica dataloaders da splits preorganizzati
+    print("Caricando dataset da splits preorganizzati...")
+    train_loader, val_loader, test_loader = create_dataloaders_from_splits(
+        splits_dir='data/quick_splits',
+        batch_size=32,
+        num_workers=2
+    )
     
     print(f"\n📊 Dataset split:")
     print(f"   Training: {len(train_loader.dataset)} samples")
@@ -158,7 +125,7 @@ def test_australian_on_separated_set(model, test_loader, breed_names):
 def test_sample_on_separated_set(model, test_loader, breed_names):
     """Test 3 razze su test set separato"""
     model.eval()
-    test_breeds = ['Australian_Shepherd_Dog', 'Afghan_hound', 'Bernese_mountain_dog']
+    test_breeds = ['Australian_Shepherd_Dog', 'Japanese_spaniel', 'Norwich_terrier']
     breed_indices = [breed_names.index(breed) for breed in test_breeds]
     
     breed_stats = defaultdict(lambda: {'correct': 0, 'total': 0, 'confidences': []})

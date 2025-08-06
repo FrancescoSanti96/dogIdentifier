@@ -348,3 +348,135 @@ Epoch 5/5: Train Acc: 45.25%, Val Acc: 32.49%
 
 **Il progetto è pronto per l'ottimizzazione finale!**
 
+---
+
+## **FASE 6: CORREZIONE DATASET LEAKAGE E VALIDAZIONE FINALE**
+
+### **6.1 Problema Critico Identificato: Dataset Leakage**
+Durante l'analisi approfondita del codice, è emerso un **problema grave**:
+- **Training**: Effettuato su `data/quick_test` (che non esisteva!)
+- **Testing**: Effettuato su `data/quick_splits/test` 
+- **Risultato**: Accuracy del 77.3% **non valida** (dataset leakage)
+
+### **6.2 Soluzione Implementata: Dataset Splits Fisici**
+
+#### **6.2.1 Creazione Splits Corretti**
+Organizzato dataset in splits fisici per 5 razze:
+```bash
+data/quick_splits/
+├── train/         # 70% - 616 immagini
+├── val/           # 15% - 129 immagini  
+└── test/          # 15% - 139 immagini
+```
+
+**Distribuzione per razza:**
+- **Australian_Shepherd_Dog**: 100 train, 21 val, 23 test (144 totali)
+- **Japanese_spaniel**: 129 train, 27 val, 29 test (185 totali)
+- **Lhasa**: 130 train, 27 val, 29 test (186 totali)
+- **Norwich_terrier**: 129 train, 27 val, 29 test (185 totali)
+- **miniature_pinscher**: 128 train, 27 val, 29 test (184 totali)
+
+#### **6.2.2 Cleanup Progetto**
+- ✅ **Rimossi file duplicati**: `test_validation.py` (incompleto), `quick_train_splits.py`
+- ✅ **Mantenuti file storici**: `utils/rename_australian_images.py` per tracciabilità
+- ✅ **Corretti path**: Training e test ora usano `data/quick_splits/`
+
+### **6.3 Training Corretto su Dataset Validi**
+
+#### **6.3.1 Configurazione Training**
+- **Dataset**: Splits fisici separati (5 razze)
+- **Modello**: SimpleBreedClassifier (3.3M parametri)
+- **Epoche**: 12 (early stopping)
+- **Batch size**: 32
+- **Learning rate**: 0.0008
+- **Patience**: 7 epoche
+
+#### **6.3.2 Risultati Training Corretto**
+```
+🚀 Training Rapido - Test Setup
+==================================================
+Training samples: 616
+Validation samples: 129
+Test samples: 139
+Classes: 5
+
+Epoch 12/12:
+Train Loss: 0.3447, Train Acc: 88.32%
+Val Loss: 1.2469, Val Acc: 56.59%
+
+✅ Training completato!
+📁 Modello salvato in: outputs/quick_splits/quick_model.pth
+🎯 Accuracy finale: Train 88.32%, Val 56.59%
+```
+
+### **6.4 Test di Validazione Finali**
+
+#### **6.4.1 Test Completo (Tutte le 5 Razze)**
+```
+🧪 Test di Validazione Progetto - 5 Razze Quick Dataset
+============================================================
+✅ Modello caricato
+📊 Accuracy training: 88.32%
+📊 Accuracy validation: 56.59%
+
+📊 RISULTATI TEST SET SEPARATO
+============================================================
+🐕 Australian_Shepherd_Dog: 60.9% accuracy, 51.4% avg confidence
+🐕 Japanese_spaniel: 72.4% accuracy, 71.0% avg confidence
+🐕 Lhasa: 58.6% accuracy, 56.3% avg confidence
+🐕 Norwich_terrier: 51.7% accuracy, 47.9% avg confidence
+🐕 miniature_pinscher: 86.2% accuracy, 74.4% avg confidence
+
+🎯 Accuracy complessiva: 66.2% (92/139)
+
+💡 RACCOMANDAZIONE:
+  ⚠️  PROSEGUI MA MIGLIORA IL MODELLO (Accuracy 66.2%)
+```
+
+#### **6.4.2 Test Specifico Australian Shepherd**
+```
+🔍 Test su immagini di TEST (mai viste durante training):
+   📁 Dataset di test: data/quick_splits/test/Australian_Shepherd_Dog
+   🎯 Testando: 22 immagini di test
+
+🎯 Accuracy Australian Shepherd: 14/22 = 63.6%
+✅ Buona performance su Australian Shepherd!
+```
+
+### **6.5 Analisi Performance Australian Shepherd**
+
+#### **6.5.1 Pattern di Errori Identificati**
+**Confusione principale con:**
+1. **Japanese_spaniel** (4 errori): Similarità visiva nella colorazione
+2. **Norwich_terrier** (2 errori): Similarità nelle dimensioni
+3. **miniature_pinscher** (1 errore): Confusione su colorazione scura
+4. **Lhasa** (1 errore): Confusione su pelo lungo
+
+#### **6.5.2 Predizioni Eccellenti (>90% confidence)**
+- `australian_shepherd_112.jpeg` → 99.8% confidence
+- `australian_shepherd_085.jpeg` → 96.5% confidence  
+- `australian_shepherd_107.jpeg` → 91.6% confidence
+
+### **6.6 Stato Attuale del Progetto**
+
+#### **6.6.1 Risultati Consolidati**
+- ✅ **Dataset leakage risolto**: Training e test su dati completamente separati
+- ✅ **Performance stabili**: Australian Shepherd 60-64% accuracy consistente
+- ✅ **Sistema validato**: Due script di test confermano risultati coerenti
+- ✅ **Foundation solida**: Base per miglioramenti futuri
+
+#### **6.6.2 Confronto Performance**
+| **Metrica** | **Test validation.py** | **Test australian_prediction.py** |
+|-------------|------------------------|-----------------------------------|
+| **Australian Shepherd Accuracy** | 60.9% (14/23) | 63.6% (14/22) |
+| **Avg Confidence** | 51.4% | 55.2% |
+| **Consistenza** | ✅ Stabile | ✅ Stabile |
+
+#### **6.6.3 Prossimi Obiettivi**
+1. **Miglioramento Model**: Architettura più sofisticata, data augmentation
+2. **Scaling Completo**: Training su tutte le 121 razze
+3. **Fase 2 Sviluppo**: Sistema di identificazione personalizzato del proprio cane
+4. **Deploy**: Interface web per utilizzo pratico
+
+**🎯 Il progetto ora ha una base solida e risultati affidabili per procedere con fiducia!**
+
