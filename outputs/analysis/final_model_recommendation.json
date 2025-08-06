@@ -1,0 +1,58 @@
+{
+  "timestamp": "2025-08-06T18:49:26.906258",
+  "analysis_type": "Final Model Comparison",
+  "baseline": {
+    "name": "Baseline Model",
+    "config": {
+      "optimizer": "Adam (lr=0.001)",
+      "augmentation": "Standard PyTorch (resize, crop, flip, normalize)",
+      "regularization": "Dropout 0.3 + Early Stopping",
+      "scheduler": "ReduceLROnPlateau",
+      "epochs": 12
+    },
+    "performance": {
+      "train_acc": 88.32,
+      "val_acc": 56.59,
+      "test_overall": 66.2,
+      "australian_shepherd": 60.9,
+      "training_time": "Not recorded",
+      "overfitting": "High (train 88.3% vs val 56.6%)"
+    }
+  },
+  "enhanced": {
+    "name": "Enhanced Model",
+    "config": {
+      "optimizer": "AdamW (lr=0.001, weight_decay=1e-3)",
+      "augmentation": "Advanced Albumentations (geometric, color, noise, cutout)",
+      "regularization": "Dropout 0.5 + Label Smoothing 0.1 + Gradient Clipping",
+      "scheduler": "CosineAnnealingLR",
+      "epochs": 6
+    },
+    "performance": {
+      "train_acc": 50.49,
+      "val_acc": 55.81,
+      "test_overall": 56.8,
+      "australian_shepherd": 43.5,
+      "training_time": "291.5s (~5 min)",
+      "overfitting": "Low (train 50.5% vs val 55.8%)"
+    }
+  },
+  "key_metrics": {
+    "australian_shepherd_diff": -17.4,
+    "overall_test_diff": -9.400000000000006,
+    "overfitting_improvement": true,
+    "training_speed_improvement": true
+  },
+  "recommendation": {
+    "verdict": "BASELINE SUPERIOR",
+    "action": "Use baseline approach for production",
+    "confidence": "HIGH",
+    "primary_reason": "Australian Shepherd accuracy decline"
+  },
+  "next_steps": [
+    "Use baseline model for full training",
+    "Investigate enhanced approach Australian Shepherd issues",
+    "Consider hybrid techniques",
+    "Monitor Australian Shepherd as primary metric"
+  ]
+}
