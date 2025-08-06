@@ -277,3 +277,74 @@ Epoch 5/5: Train Acc: 45.25%, Val Acc: 32.49%
 
 **Il problema del dataset sbilanciato è stato completamente risolto!**
 
+---
+
+## **FASE 5: OTTIMIZZAZIONE E OVERFITTING**
+
+### **5.1 Identificazione Problema Overfitting**
+**Test con dataset separato ha rivelato overfitting:**
+- **Training accuracy**: 80.46% (troppo alta)
+- **Validation accuracy**: 45.13% (discreta)
+- **Test accuracy**: 23.5% (bassa - overfitting)
+
+### **5.2 Analisi Dettagliata Overfitting**
+
+**Confronto 5 vs 10 epoche:**
+
+| **Metrica** | **5 Epoche** | **10 Epoche** | **Miglioramento** |
+|-------------|-------------|---------------|-------------------|
+| **Training Accuracy** | 45.25% | **80.46%** | ✅ +35.21% |
+| **Validation Accuracy** | 32.49% | **45.13%** | ✅ +12.64% |
+| **Test Set Accuracy** | 27.3% | **23.5%** | ❌ -3.8% |
+| **Australian Shepherd** | 12.5% | **35.7%** | ✅ +23.2% |
+
+**Risultati test set separato (10 epoche):**
+```
+📊 RISULTATI TEST SET SEPARATO
+============================================================
+🐕 Australian_Shepherd_Dog:
+  📊 Accuracy: 35.7% (5/14)
+  📊 Avg confidence: 27.4%
+🐕 Afghan_hound:
+  📊 Accuracy: 25.0% (10/40)
+  📊 Avg confidence: 26.8%
+🐕 Bernese_mountain_dog:
+  📊 Accuracy: 16.1% (5/31)
+  📊 Avg confidence: 17.7%
+
+🎯 Accuracy complessiva: 23.5% (20/85)
+```
+
+### **5.3 Problema Identificato: Overfitting**
+**Il modello ha imparato a "ricordare" invece di "generalizzare":**
+- **Training**: 80.46% (ricorda troppo bene i dati visti)
+- **Validation**: 45.13% (generalizza un po' peggio)
+- **Test**: 23.5% (generalizza molto peggio su dati nuovi)
+
+### **5.4 Soluzioni Proposte per Overfitting**
+
+#### **5.4.1 Early Stopping**
+- **Fermarsi** quando validation accuracy non migliora
+- **Evitare** overfitting nelle ultime epoche
+- **Salvare** il miglior modello
+
+#### **5.4.2 Regolarizzazione**
+- **Aumentare dropout** (attualmente 0.3 → 0.5)
+- **Data augmentation** più aggressiva
+- **Weight decay** per ridurre overfitting
+
+#### **5.4.3 Learning Rate**
+- **Learning rate più basso** (0.001 → 0.0005)
+- **Learning rate scheduling** (ridurre durante training)
+
+### **5.5 Raccomandazione Finale**
+**Il modello funziona ma overfitta!** Australian Shepherd è passato da 12.5% a 35.7% - questo è un **miglioramento reale**!
+
+**Prossimi passi:**
+1. **Implementare early stopping** per evitare overfitting
+2. **Aumentare regolarizzazione** (dropout, data augmentation)
+3. **Procedere con training completo** su tutte le 121 razze
+4. **Implementare Fase 2** (identificazione personale)
+
+**Il progetto è pronto per l'ottimizzazione finale!**
+

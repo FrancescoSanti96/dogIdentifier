@@ -18,21 +18,25 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.config_helper import ConfigHelper
 from utils.dataloader import DogBreedDataset, get_transforms
 from models.breed_classifier import create_breed_classifier
+from utils.early_stopping import EarlyStopping
 
 def quick_train():
     """Training rapido con dataset ridotto"""
     print("🚀 Training Rapido - Test Setup")
-    print("="*50)
+    print("==================================================")
     
     # Setup
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    # Configurazione rapida
+    # Definisco data_dir qui per evitare NameError
     data_dir = 'data/breeds'
-    num_epochs = 5  # Solo 5 epoche per test
+
+    # Configurazione intermedia
+    num_epochs = 12  # Epoche intermedie
     batch_size = 32
-    learning_rate = 0.001
+    learning_rate = 0.0008  # Learning rate intermedio
+    patience = 7  # Early stopping patience intermedia
     
     # Carica dataset
     print("Caricando dataset...")
@@ -75,17 +79,19 @@ def quick_train():
     print(f"Validation samples: {len(val_dataset)}")
     print(f"Classes: {num_classes}")
     
-    # Modello semplice
+    # Modello con dropout intermedio
     model = create_breed_classifier(
         model_type='simple',
         num_classes=num_classes,
-        dropout_rate=0.3
+        dropout_rate=0.4  # Dropout intermedio
     )
     model = model.to(device)
     
-    # Training setup
+    # Training setup intermedio
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-5)  # Weight decay intermedio
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+    early_stopping = EarlyStopping(patience=patience)
     
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
     print(f"Starting training for {num_epochs} epochs...")
@@ -151,6 +157,10 @@ def quick_train():
         
         print(f"Train Loss: {avg_train_loss:.4f}, Train Acc: {train_acc:.2f}%")
         print(f"Val Loss: {avg_val_loss:.4f}, Val Acc: {val_acc:.2f}%")
+        
+        if early_stopping(avg_val_loss):
+            print(f"🛑 Early stopping! Nessun miglioramento per {patience} epoche")
+            break
     
     # Salva modello
     os.makedirs('outputs/quick_test', exist_ok=True)

@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 """
 Data loading utilities for dog breed identifier project
+
+This module provides:
+1. DogBreedDataset: Custom dataset for multi-class breed classification
+2. MyDogDataset: Binary classification for personal dog identification  
+3. Data transformation utilities with augmentation
+4. DataLoader creation with proper train/val/test splits
+5. Dataset visualization and analysis tools
+
+Author: Francesco Santi
+Date: August 2025
 """
 
 import os
@@ -11,6 +21,8 @@ from typing import List, Tuple, Dict, Optional
 from PIL import Image
 import matplotlib.pyplot as plt
 import seaborn as sns
+import shutil
+from collections import Counter
 
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms

@@ -1,6 +1,7 @@
 {
     "data": {
         "breed_dataset_path": "data/breeds",
+        "my_dog_dataset_path": "data/my_dog_vs_others",
         "image_size": [224, 224],
         "batch_size": 64,
         "num_workers": 8,
