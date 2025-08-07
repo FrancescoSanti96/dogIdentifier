@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 # Add project root to path
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent  # Vai alla cartella padre del progetto
 sys.path.append(str(project_root))
 
 def test_imports():

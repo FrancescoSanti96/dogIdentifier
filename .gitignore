@@ -54,8 +54,21 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
+# Windows specific
+*.tmp
+*.temp
+*.lnk
+desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
 # Project specific
 data/
+dataExample/
 *.log
 logs/
 # outputs/          # Commentato: vogliamo includere modelli addestrati
@@ -66,4 +79,7 @@ plots/
 *.tmp
 *.temp
 temp/
-tmp/ 
+tmp/
+
+# Windows automation scripts (optional - rimuovi se vuoi versionare)
+# *.bat 

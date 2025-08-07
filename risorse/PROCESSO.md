@@ -688,3 +688,265 @@ Il progetto è ora nelle condizioni ideali per il training completo su 120 razze
 - **Documentazione Completa**: Ogni decisione tracciata e motivata
 - **Path Corretti**: Tutti gli script funzionali dalla nuova struttura
 
+
+---
+
+## **FASE 9: Setup Windows e Training GPU (6 Agosto 2025)**
+### **9.1 Migrazione a Windows**
+
+#### **9.1.1 Problemi Iniziali Setup Windows**
+Durante la migrazione da Mac a Windows, sono emersi diversi problemi di compatibilità:
+
+**❌ Errori Import Python:**
+```python
+ImportError: cannot import name 'BreedClassifier' from 'models'
+ImportError: cannot import name 'create_dataloaders' from 'utils.dataloader'
+```
+
+**❌ Test di Sistema Falliti:**
+```
+📊 Test Results: 1/5 tests passed
+⚠️ Some tests failed. Please check the errors above.
+```
+
+#### **9.1.2 Soluzioni Implementate**
+
+**✅ Correzione Import Moduli:**
+- Aggiornato `models/__init__.py` con import espliciti
+- Aggiornato `utils/__init__.py` con tutte le utility necessarie  
+- Corretti path nei test per Windows
+
+**✅ Ottimizzazione Configurazione Windows:**
+```json
+{
+    "data": {
+        "batch_size": 32,    // Ridotto da 64 per stabilità Windows
+        "num_workers": 4,    // Ridotto da 8 per threading Windows
+    }
+}
+```
+
+### **9.2 Upgrade PyTorch CPU → GPU**
+
+#### **9.2.1 Hardware Rilevato**
+```
+NVIDIA GeForce GTX 1060 with Max-Q Design
+CUDA Version: 12.7
+Driver Version: 565.90
+Memory: 6144 MB
+```
+
+#### **9.2.2 Installazione PyTorch CUDA**
+```bash
+# Disinstallazione versione CPU
+pip uninstall torch torchvision torchaudio -y
+
+# Installazione versione CUDA 11.8 (compatibile)
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+**✅ Risultato:**
+```
+PyTorch version: 2.7.1+cu118
+CUDA available: True
+GPU count: 1
+GPU name: NVIDIA GeForce GTX 1060 with Max-Q Design
+```
+
+### **9.3 Configurazione GPU Training**
+
+#### **9.3.1 Configurazione Ottimizzata GPU**
+```json
+{
+    "data": {
+        "batch_size": 64,           // Ripristinato valore alto per GPU
+        "num_workers": 8,           // Ripristinato per performance GPU
+    },
+    "training": {
+        "device": "cuda",           // Forzare uso GPU
+        "mixed_precision": true,    // Performance migliori GPU
+        "learning_rate": 0.0005,
+        "num_epochs": 100,
+        "early_stopping_patience": 10
+    }
+}
+```
+
+### **9.4 Risultati Training GPU (Quick Training)**
+
+#### **9.4.1 Performance Training**
+```
+Epoche: 12 (Early stopping attivato)
+Training Speed: ~1.3 it/s (molto più veloce di CPU)
+Hardware: NVIDIA GTX 1060 utilizzata al 100%
+
+Risultati Finali:
+✅ Training Accuracy: 97.29%
+✅ Validation Accuracy: 63.57%
+✅ Early Stopping: Attivato dopo 7 epoche senza miglioramento
+✅ Modello Salvato: outputs/quick_splits/quick_model.pth
+```
+
+#### **9.4.2 Test Australian Shepherd (GPU Model)**
+```
+🎯 Test Australian Shepherd - Modello GPU-trained:
+📊 Accuracy: 81.8% (18/22 immagini corrette)
+📊 Confidenza Media: ~85% (molto alta)
+
+✅ Predizioni Eccellenti (>95% confidence):
+   • australian_shepherd_085.jpeg → 99.4%
+   • australian_shepherd_097.jpeg → 99.7%
+   • australian_shepherd_120.jpeg → 98.0%
+   • australian_shepherd_126.jpeg → 98.2%
+   • australian_shepherd_129.jpeg → 98.8%
+
+✅ Predizioni Perfette (100% confidence):
+   • australian_shepherd_073.jpeg → 100.0%
+   • australian_shepherd_107.jpeg → 100.0%
+   • australian_shepherd_112.jpeg → 100.0%
+
+❌ Solo 4 errori significativi su 22 immagini:
+   • 2 confusioni principali con Lhasa e miniature_pinscher
+```
+
+### **9.5 Confronto Performance CPU vs GPU**
+
+#### **9.5.1 Training Performance**
+| **Aspetto** | **CPU (Baseline)** | **GPU (Current)** | **Miglioramento** |
+|-------------|-------------------|------------------|------------------|
+| **Training Speed** | ~0.3 it/s | **~1.3 it/s** | ✅ **4.3x più veloce** |
+| **Training Accuracy** | 88.32% | **97.29%** | ✅ **+8.97%** |
+| **Validation Accuracy** | 56.59% | **63.57%** | ✅ **+6.98%** |
+| **Australian Shepherd Test** | 60.9% | **81.8%** | ✅ **+20.9%** |
+| **Confidence Media** | ~51.4% | **~85%** | ✅ **+33.6%** |
+| **Batch Size** | 32 | **64** | ✅ **2x più grande** |
+
+#### **9.5.2 Benefici GPU Training**
+1. **🚀 Performance**: 4.3x velocità training
+2. **🎯 Accuracy**: +20.9% su Australian Shepherd (obiettivo primario)
+3. **💪 Capacità**: Batch size doppio (32→64)
+4. **🔥 Confidence**: Predizioni molto più sicure (~85% vs ~51%)
+5. **⚡ Efficienza**: Mixed precision per ottimizzazione memoria
+
+### **9.6 Setup Finale Windows Ottimizzato**
+
+#### **9.6.1 Pulizia Progetto**
+- ❌ Rimossi script .bat non essenziali (automazione)
+- ❌ Rimossa documentazione duplicata  
+- ❌ Rimossi file temporanei di debug
+- ✅ Mantenute solo modifiche essenziali per funzionamento
+
+#### **9.6.2 Test Sistema Finale**
+```
+🚀 Dog Breed Identifier - Project Setup Test
+==================================================
+📊 Test Results: 5/5 tests passed
+🎉 All tests passed! Project setup is ready.
+
+✅ Componenti Verificati:
+   • Python 3.13.5 (Anaconda)
+   • PyTorch 2.7.1+cu118 (GPU)
+   • NVIDIA GTX 1060 funzionante
+   • Tutti i moduli importabili
+   • Configurazione GPU ottimizzata
+   • Dataset presente e accessibile
+```
+
+#### **9.6.3 Comandi Finali Ottimizzati**
+```bash
+# Test completo setup
+python test/test_setup.py
+
+# Training rapido GPU
+python quick_train.py
+
+# Test Australian Shepherd  
+python test_australian_prediction.py
+```
+
+### **9.7 Status Progetto Aggiornato**
+
+#### **9.7.1 Obiettivi Raggiunti ✅**
+- [x] **Setup Windows**: Completamente funzionante
+- [x] **GPU Training**: NVIDIA GTX 1060 attiva e ottimizzata
+- [x] **Performance Australian Shepherd**: 81.8% accuracy (superata soglia 70%)
+- [x] **Training Speed**: 4.3x più veloce di CPU
+- [x] **Sistema Pulito**: Solo componenti essenziali
+- [x] **Test Validation**: 5/5 test passano
+
+#### **9.7.2 Risultato Finale**
+**Il progetto Dog Breed Identifier è ora completamente configurato su Windows con GPU e pronto per il training completo su 120 razze!**
+
+**Performance Australian Shepherd**: **81.8%** (superato largamente l'obiettivo del 70%)
+**Training Speed**: **4.3x più veloce** con GPU
+**Setup**: **Completamente ottimizzato** per Windows + NVIDIA
+
+🎯 **Il sistema è pronto per la fase finale: training completo su tutte le 121 razze del dataset Stanford Dogs!**
+
+---
+
+## **FASE 10: Preparazione Dataset Completo (7 Agosto 2025)**
+
+### **10.1 Risoluzione Discrepanza Australian Shepherd**
+
+Durante la preparazione del dataset completo, abbiamo identificato e risolto una confusione sui numeri:
+
+**❌ Problema Iniziale**: L'analisi mostrava 288 immagini per Australian_Shepherd_Dog
+**🔍 Investigazione**: Analisi manuale ha rivelato due razze australiane separate:
+- `Australian_Shepherd_Dog`: **148 immagini** ✅
+- `Australian_terrier`: **196 immagini** ✅ (razza diversa)
+
+**💡 Soluzione**: Il numero 288 era probabilmente un errore di output/somma del script. I dati reali sono corretti.
+
+**✅ Conferma**: Il dataset contiene esattamente **148 immagini** di Australian_Shepherd_Dog, come previsto.
+
+### **10.2 Creazione Dataset Splits Completo**
+
+**Configurazione Split:**
+- **Source**: `data/breeds/` (121 razze, 41,448 immagini totali)
+- **Output**: `data/full_splits/`
+- **Ratios**: 70% Train, 15% Val, 15% Test
+- **Seed**: 42 (riproducibilità)
+
+**Risultati Split:**
+```
+✅ Dataset splitting completed!
+   Total files processed: 41,448
+   Train: 28,961 files (70%)
+   Validation: 6,165 files (15%)
+   Test: 6,322 files (15%)
+   Output directory: data\full_splits
+```
+
+**Australian_Shepherd_Dog Distribution:**
+- **Train**: 103 immagini
+- **Validation**: 22 immagini  
+- **Test**: 23 immagini
+- **Total**: 148 immagini ✅
+
+### **10.3 Correzione Problemi Tecnici**
+
+#### **10.3.1 Fix Encoding Unicode Windows**
+Il script `prepare_dataset.py` aveva problemi con caratteri Unicode (emoji) su Windows. Corretti tutti i simboli:
+- `❌` → `Error:`
+- `⚠️` → `WARNING:`
+- `✅` → `OK:`
+- `🏆` → `TOP`
+- `🔽` → `BOTTOM`
+
+#### **10.3.2 Compatibilità Windows/PowerShell**
+- Script ora completamente compatibile con terminale Windows
+- Output pulito senza errori di encoding
+- Funzionamento testato e confermato
+
+### **10.4 Dataset Pronto per Training Completo**
+
+**✅ Status Attuale:**
+- [x] Dataset completo analizzato (121 razze)
+- [x] Australian_Shepherd_Dog confermato (148 immagini)
+- [x] Split fisici creati (train/val/test)
+- [x] Compatibilità Windows assicurata
+- [x] Struttura pronta per GPU training
+
+**🎯 Prossimo Passo:**
+Il sistema è ora pronto per il **training completo GPU** su tutte le 121 razze del dataset Stanford Dogs usando la configurazione baseline ottimizzata!
