@@ -42,13 +42,41 @@ dogIdentifier/
    python quick_train.py
    ```
 
+4. **TensorBoard training with 5 breeds**:
+   ```bash
+   python quick5_tensorboard_train.py
+   python launch_tensorboard.py
+   ```
+
+5. **TOP 10 balanced training**:
+   ```bash
+   python top10_improved_train.py
+   ```
+
 ## 📊 Features
 
 - **Custom CNN Architecture**: Built from scratch, no pre-trained models
 - **Data Augmentation**: Horizontal flip, rotation, color jitter
+- **TensorBoard Integration**: Real-time training monitoring and visualization
+- **Adaptive Learning Rate**: ReduceLROnPlateau scheduling for optimal training
+- **Balanced Datasets**: TOP 10 breeds with optimal sample distribution
 - **Comprehensive Metrics**: Accuracy, Precision, Recall, F1-Score, ROC-AUC
 - **Visualization Tools**: Confusion matrix, ROC curves, Grad-CAM
 - **Modular Design**: Clean, maintainable code structure
+
+## 🚀 Training Scripts
+
+### Core Training Scripts:
+- **`quick_train.py`**: Basic training with 5 breeds (12 epochs)
+- **`quick5_tensorboard_train.py`**: Enhanced 5-breed training with TensorBoard monitoring
+- **`top10_improved_train.py`**: Optimized TOP 10 balanced training with adaptive LR
+- **`launch_tensorboard.py`**: Utility to launch TensorBoard dashboard
+
+### Key Features:
+- **TensorBoard Integration**: Real-time loss/accuracy curves, per-class metrics
+- **Early Stopping**: Automatic training termination to prevent overfitting  
+- **Adaptive Learning Rate**: ReduceLROnPlateau for optimal convergence
+- **Balanced Datasets**: Carefully curated breed selections for optimal performance
 
 ## 🎓 Educational Value
 
