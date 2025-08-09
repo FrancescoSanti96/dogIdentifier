@@ -5,6 +5,7 @@ This directory contains experimental code and analysis for the Dog Breed Classif
 ## Structure
 
 ### `enhanced_vs_baseline/`
+
 Complete experimental comparison between enhanced training techniques and baseline approach for Australian Shepherd recognition.
 
 **Status**: Completed ✅  
@@ -12,6 +13,14 @@ Complete experimental comparison between enhanced training techniques and baseli
 **Key Finding**: Baseline achieved 60.9% Australian Shepherd accuracy vs Enhanced 43.5%
 
 See the [detailed README](enhanced_vs_baseline/README.md) for complete experiment documentation.
+
+### `archive/`
+
+Contiene file sperimentali obsoleti o duplicati, mantenuti per tracciabilità storica.
+
+**Content**: Script di training sostituiti, analisi obsolete, duplicati  
+**Status**: Archived 📦  
+**Note**: File preservati per riferimento storico ma non più nel flusso principale
 
 ## Guidelines for New Experiments
 
@@ -26,6 +35,7 @@ When adding new experiments:
 ## Project Organization
 
 Experimental files are moved here to:
+
 - Keep the main project directory clean
 - Preserve valuable experimental work
 - Maintain organized development history

@@ -5,8 +5,11 @@ A deep learning project for dog breed classification using custom Convolutional 
 ## 🎯 Project Overview
 
 This project implements a two-phase dog identification system:
-1. **Breed Classifier**: Multi-class classification of 120+ dog breeds
-2. **Personal Dog Identifier**: Binary classification for personal dog recognition
+
+1. **Breed Classifier**: Multi-class classification (started with 120+ breeds, optimized to 5→10 breeds)
+2. **Personal Dog Identifier**: Binary classification for personal Australian Shepherd recognition
+
+**Note**: Il progetto è partito con l'obiettivo di 120 razze, ma attraverso un percorso sperimentale documentato in `risorse/PROCESSO.md` è stato ottimizzato per un approccio più realistico con focus su Australian Shepherd.
 
 ## 🏗️ Project Structure
 
@@ -28,29 +31,29 @@ dogIdentifier/
 ## 🚀 Quick Start
 
 1. **Install dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Download dataset**:
+2. **Training 5 razze (baseline consolidato)**:
+
    ```bash
-   python download_datasets.py --dataset stanford
+   python quick5_tensorboard_train.py    # Training + TensorBoard
+   python launch_tensorboard.py          # Monitor: http://localhost:6006
+   python test/test_validation.py        # Test e validazione
    ```
 
-3. **Quick training test**:
+3. **Training 10 razze (TOP 10 balanced)**:
+
    ```bash
-   python quick_train.py
+   python prepare_top10_balanced.py      # Preparazione dataset
+   python top10_balanced_train.py        # Training 10 razze
    ```
 
-4. **TensorBoard training with 5 breeds**:
+4. **Fase 2 - Mio cane** (da implementare):
    ```bash
-   python quick5_tensorboard_train.py
-   python launch_tensorboard.py
-   ```
-
-5. **TOP 10 balanced training**:
-   ```bash
-   python top10_improved_train.py
+   # TODO: my_dog_train.py per classificazione binaria
    ```
 
 ## 📊 Features
@@ -66,21 +69,28 @@ dogIdentifier/
 
 ## 🚀 Training Scripts
 
-### Core Training Scripts:
-- **`quick_train.py`**: Basic training with 5 breeds (12 epochs)
-- **`quick5_tensorboard_train.py`**: Enhanced 5-breed training with TensorBoard monitoring
-- **`top10_improved_train.py`**: Optimized TOP 10 balanced training with adaptive LR
-- **`launch_tensorboard.py`**: Utility to launch TensorBoard dashboard
+### Core Scripts (3 principali):
+
+- **`quick5_tensorboard_train.py`**: Training 5 razze con TensorBoard monitoring
+- **`top10_balanced_train.py`**: Training 10 razze bilanciate
+- **`my_dog_train.py`**: Classificazione binaria mio cane (TODO)
 
 ### Key Features:
+
 - **TensorBoard Integration**: Real-time loss/accuracy curves, per-class metrics
-- **Early Stopping**: Automatic training termination to prevent overfitting  
+- **Early Stopping**: Automatic training termination to prevent overfitting
 - **Adaptive Learning Rate**: ReduceLROnPlateau for optimal convergence
 - **Balanced Datasets**: Carefully curated breed selections for optimal performance
+
+### Risultati Attuali:
+
+- **5 razze**: 66.2% test, 60.9% Australian Shepherd ✅
+- **10 razze**: 28.81% val (da migliorare) ⚠️
 
 ## 🎓 Educational Value
 
 This project demonstrates:
+
 - Deep learning fundamentals
 - Computer vision techniques
 - PyTorch framework usage
@@ -89,4 +99,4 @@ This project demonstrates:
 
 ## 📝 License
 
-MIT License - see LICENSE file for details. 
+MIT License - see LICENSE file for details.
