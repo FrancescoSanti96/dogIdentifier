@@ -765,6 +765,27 @@ experiments/
 - ✅ Script 5-razze ora usa `data/breeds_5` con 5 classi reali [Australian_Shepherd_Dog, Chihuahua, Japanese_spaniel, Norwich_terrier, Siberian_husky]
 - ✅ Test aggiornato (`test/test_validation.py`) per validare modello `outputs/quick5/best_model.pth` sui nuovi split
 
+Risultati consolidati 5 razze (breeds_5)
+
+- Run 3 epoche (TL frozen): Val 95.24%
+- Run 6 epoche (TL frozen): Best Val 98.10% (ep. 4), Final Val 97.14% (ep. 6)
+- Logdir: `outputs/tensorboard/quick5_20250809_192916`
+- Checkpoint: `outputs/quick5/best_model.pth`
+
+Dataset 10 razze bilanciato (esteso dai 5)
+
+- Preparazione: `prepare_top10_balanced.py` → `data/top10_balanced`
+- Razze: [Australian_Shepherd_Dog, Chihuahua, Japanese_spaniel, Norwich_terrier, Siberian_husky, Beagle, Pomeranian, Golden_retriever, Maltese_dog, Labrador_retriever]
+- Split complessivo: Train 1,159 | Val 243 | Test 260 (10 classi)
+
+Training 10 razze (quick10)
+
+- Config: TL ResNet18 (frozen), AdamW, LR 0.0008 → 0.0004 (da ep. 13), RRC + sampler
+- Epoche: 15
+- Best Val: 97.94% (ep. 15)
+- Logdir: `outputs/tensorboard/quick10_20250809_214647`
+- Checkpoint: `outputs/top10/best_model.pth`
+
 Risultati recenti (run rapido 3 epoche, TL frozen):
 
 - Val Accuracy: 95.24% su `data/breeds_5`
@@ -1086,7 +1107,8 @@ WEIGHT_DECAY = 1e-4
 
 ### **📊 STATUS FINALE:**
 
-- **Fase 1a** (5 razze): ✅ **CONSOLIDATO** → 95.2% val (TL, 3 epoche su `breeds_5`), target superato
+- **Fase 1a** (5 razze): ✅ **CONSOLIDATO** → 98.1% val (TL, 6 epoche su `breeds_5`), target superato
+- **Fase 1b** (10 razze): ✅ **CONSOLIDATO** → 97.9% val (TL, 15 epoche su `top10_balanced`)
 - **Fase 1b** (10 razze): ⚠️ **DA MIGLIORARE** → 28.81% val, serve ottimizzazione
 - **Fase 2** (mio cane): 🔄 **PRONTO** → script creato, serve dataset personale
 
@@ -1146,3 +1168,18 @@ Tutti i file sperimentali obsoleti sono stati spostati in `experiments/archive/`
 ### **📊 Conclusioni del Percorso:**
 
 Il progetto ha seguito un percorso iterativo partendo dall'obiettivo iniziale di 120 razze, scoprendo le limitazioni hardware/dataset, e convergendo verso un approccio più realistico e consolidato con focus su Australian Shepherd - esattamente come documentato nelle fasi sopra.
+
+## **Aggiornamenti Agosto 2025 (in ordine cronologico finale)**
+
+- 5 razze (breeds_5) – Transfer Learning ResNet18 (frozen)
+
+  - 3 epoche: Val 95.24%
+  - 6 epoche: Best Val 98.10% (ep. 4), Final Val 97.14% (ep. 6)
+  - Logs: `outputs/tensorboard/quick5_20250809_192916`
+  - Checkpoint: `outputs/quick5/best_model.pth`
+
+- 10 razze (top10_balanced) – Dataset esteso dai 5, bilanciato con `prepare_top10_balanced.py`
+  - Split: Train 1,159 | Val 243 | Test 260 (10 classi)
+  - 15 epoche (TL frozen): Best/Final Val 97.94% (ep. 15)
+  - Logs: `outputs/tensorboard/quick10_20250809_214647`
+  - Checkpoint: `outputs/top10/best_model.pth`
