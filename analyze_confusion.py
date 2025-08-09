@@ -29,8 +29,8 @@ def analyze_confusion():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Carica il modello salvato
-    model_path = "outputs/improved/best_model.pth"
+    # Carica il modello salvato (quick5 di default)
+    model_path = "outputs/quick5/best_model.pth"
     if not os.path.exists(model_path):
         print(f"❌ Modello non trovato: {model_path}")
         return
@@ -47,16 +47,35 @@ def analyze_confusion():
     print(f"   Razze: {breed_names}")
     print(f"   Best Val Acc: {checkpoint.get('best_val_acc', 'N/A'):.2f}%")
 
-    # Crea modello
-    model = create_breed_classifier(
-        model_type="simple", num_classes=num_classes, dropout_rate=0.3
-    )
-    model.load_state_dict(checkpoint["model_state_dict"])
+    # Crea modello (rileva automaticamente architettura dal checkpoint)
+    state_dict = checkpoint["model_state_dict"]
+    backbone_keys = [
+        k
+        for k in state_dict.keys()
+        if k.startswith("layer1.") or k.startswith("conv1.")
+    ]
+    if len(backbone_keys) > 0:
+        # ResNet18 backbone
+        print("🧠 Rilevato backbone ResNet18 dal checkpoint")
+        model = create_breed_classifier(
+            model_type="simple",  # ignorato quando si specifica il backbone
+            num_classes=num_classes,
+            dropout_rate=0.4,
+            pretrained_backbone="resnet18",
+            freeze_backbone=False,
+        )
+    else:
+        # Simple CNN
+        model = create_breed_classifier(
+            model_type="simple", num_classes=num_classes, dropout_rate=0.3
+        )
+
+    model.load_state_dict(state_dict)
     model = model.to(device)
     model.eval()
 
-    # Carica dataset
-    data_dir = "data/quick_splits"
+    # Carica dataset (5 razze)
+    data_dir = "data/breeds_5"
     _, _, test_loader = create_dataloaders_from_splits(
         splits_dir=data_dir,
         batch_size=32,

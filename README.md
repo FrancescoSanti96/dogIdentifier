@@ -75,11 +75,13 @@ dogIdentifier/
 
 ## 🚀 Training Scripts
 
-### Core Scripts (3 principali):
+### Core Scripts (snelliti):
 
 - **`quick5_tensorboard_train.py`**: Training 5 razze con TensorBoard monitoring
 - **`top10_balanced_train.py`**: Training 10 razze bilanciate
-- **`my_dog_train.py`**: Classificazione binaria mio cane (TODO)
+- **`my_dog_train.py`**: Classificazione binaria mio cane
+
+Altri script sperimentali sono stati spostati in `experiments/archive/`.
 
 ### Key Features:
 

@@ -2,33 +2,31 @@ CONFUSION MATRIX ANALYSIS
 ==================================================
 
 ACCURACY PER CLASSE:
-miniature_pinscher       :  82.8% (24/29)
-Japanese_spaniel         :  58.6% (17/29)
-Siberian_husky           :  43.3% (13/30)
-Australian_Shepherd_Dog  :  39.1% (9/23)
-German_shepherd          :   4.2% (1/24)
+Norwich_terrier          : 100.0% (21/21)
+Siberian_husky           :  90.5% (19/21)
+Australian_Shepherd_Dog  :  85.7% (18/21)
+Chihuahua                :  85.7% (18/21)
+Japanese_spaniel         :  85.7% (18/21)
 
 ERRORI PIÙ COMUNI:
-German_shepherd      → miniature_pinscher  : 21 volte (87.5%)
-Siberian_husky       → miniature_pinscher  : 10 volte (33.3%)
-Australian_Shepherd_Dog → miniature_pinscher  :  8 volte (34.8%)
-Australian_Shepherd_Dog → Japanese_spaniel    :  5 volte (21.7%)
-Japanese_spaniel     → miniature_pinscher  :  5 volte (17.2%)
-Siberian_husky       → Japanese_spaniel    :  5 volte (16.7%)
-Japanese_spaniel     → Siberian_husky      :  4 volte (13.8%)
-Japanese_spaniel     → Australian_Shepherd_Dog:  3 volte (10.3%)
-Siberian_husky       → Australian_Shepherd_Dog:  2 volte ( 6.7%)
-miniature_pinscher   → Australian_Shepherd_Dog:  2 volte ( 6.9%)
+Australian_Shepherd_Dog → Japanese_spaniel    :  2 volte ( 9.5%)
+Japanese_spaniel     → Australian_Shepherd_Dog:  2 volte ( 9.5%)
+Siberian_husky       → Chihuahua           :  2 volte ( 9.5%)
+Australian_Shepherd_Dog → Norwich_terrier     :  1 volte ( 4.8%)
+Chihuahua            → Australian_Shepherd_Dog:  1 volte ( 4.8%)
+Chihuahua            → Japanese_spaniel    :  1 volte ( 4.8%)
+Chihuahua            → Siberian_husky      :  1 volte ( 4.8%)
+Japanese_spaniel     → Chihuahua           :  1 volte ( 4.8%)
 
 CLASSIFICATION REPORT:
                          precision    recall  f1-score   support
 
-Australian_Shepherd_Dog      0.562     0.391     0.462        23
-        German_shepherd      0.500     0.042     0.077        24
-       Japanese_spaniel      0.607     0.586     0.596        29
-         Siberian_husky      0.619     0.433     0.510        30
-     miniature_pinscher      0.353     0.828     0.495        29
+Australian_Shepherd_Dog      0.857     0.857     0.857        21
+              Chihuahua      0.857     0.857     0.857        21
+       Japanese_spaniel      0.857     0.857     0.857        21
+        Norwich_terrier      0.955     1.000     0.977        21
+         Siberian_husky      0.950     0.905     0.927        21
 
-               accuracy                          0.474       135
-              macro avg      0.528     0.456     0.428       135
-           weighted avg      0.529     0.474     0.440       135
+               accuracy                          0.895       105
+              macro avg      0.895     0.895     0.895       105
+           weighted avg      0.895     0.895     0.895       105
