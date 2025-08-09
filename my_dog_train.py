@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.dataloader import MyDogDataset, get_transforms
 from models.breed_classifier import create_breed_classifier
 from utils.early_stopping import EarlyStopping
+from utils.seed_utils import set_deterministic
 from torch.utils.data import DataLoader
 
 
@@ -30,6 +31,7 @@ def my_dog_train():
     print("🎯 Il mio Australian Shepherd vs Altri cani")
 
     # Setup
+    set_deterministic(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -84,16 +86,17 @@ def my_dog_train():
         print("❌ Dataset vuoto! Aggiungi immagini in my_dog/ e other_dogs/")
         return
 
-    # Split dataset
+    # Split dataset con seed fisso per riproducibilità
+    generator = torch.Generator().manual_seed(42)
     train_size = int(0.7 * len(full_dataset))
     val_size = int(0.15 * len(full_dataset))
     test_size = len(full_dataset) - train_size - val_size
 
     train_dataset, temp_dataset = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size + test_size]
+        full_dataset, [train_size, val_size + test_size], generator=generator
     )
     val_dataset, test_dataset = torch.utils.data.random_split(
-        temp_dataset, [val_size, test_size]
+        temp_dataset, [val_size, test_size], generator=generator
     )
 
     # Update transforms for validation/test
@@ -116,12 +119,23 @@ def my_dog_train():
     print(f"   Validation: {len(val_dataset)} samples")
     print(f"   Test: {len(test_dataset)} samples")
 
-    # Modello binario (2 classi)
-    model = create_breed_classifier(
-        model_type="simple",
-        num_classes=2,  # Binario: mio cane vs altri
-        dropout_rate=dropout_rate,
-    )
+    # Modello binario (2 classi) con opzione transfer learning via env
+    use_tl = bool(int(os.getenv("USE_TL", "0")))
+    if use_tl:
+        print("\n🧠 Using transfer learning backbone: ResNet18 (frozen)")
+        model = create_breed_classifier(
+            model_type="simple",
+            num_classes=2,
+            dropout_rate=dropout_rate,
+            pretrained_backbone="resnet18",
+            freeze_backbone=True,
+        )
+    else:
+        model = create_breed_classifier(
+            model_type="simple",
+            num_classes=2,
+            dropout_rate=dropout_rate,
+        )
     model = model.to(device)
 
     print(f"\n🔧 Modello binario:")

@@ -21,6 +21,7 @@ from utils.config_helper import ConfigHelper
 from utils.dataloader import create_dataloaders_from_splits, get_transforms
 from models.breed_classifier import create_breed_classifier
 from utils.early_stopping import EarlyStopping
+from utils.seed_utils import set_deterministic
 
 
 def quick5_tensorboard_train():
@@ -32,6 +33,7 @@ def quick5_tensorboard_train():
     print("📊 Training con 5 razze complete e monitoring TensorBoard")
 
     # Setup
+    set_deterministic(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -45,7 +47,8 @@ def quick5_tensorboard_train():
     print(f"   🔗 URL: http://localhost:6006")
 
     # Configurazione
-    data_dir = "data/quick_splits"  # Dataset con 5 razze complete
+    # Usa gli split già pronti con 5 razze reali
+    data_dir = "data/breeds_5"
     import os as _os
 
     num_epochs = int(_os.getenv("EPOCHS", "20"))  # override con EPOCHS se impostata
@@ -83,14 +86,18 @@ def quick5_tensorboard_train():
     print(f"\n📂 Caricando dataset da: {data_dir}")
     # Abilita augmentation da config
     cfg = ConfigHelper()
-    augmentation_config = cfg.get_augmentation_config()
-    # Ordine desiderato: 5 razze effettivamente presenti in data/quick_splits
+    # Augmentation: merge config with defaults to ensure RandomResizedCrop
+    augmentation_config = cfg.get_augmentation_config() or {}
+    augmentation_config.setdefault("random_resized_crop", True)
+    augmentation_config.setdefault("rrc_scale", (0.85, 1.0))
+    augmentation_config.setdefault("rrc_ratio", (0.9, 1.1))
+    # Ordine desiderato: 5 razze effettivamente presenti in data/breeds_5
     desired_breeds = [
         "Australian_Shepherd_Dog",
+        "Chihuahua",
         "Japanese_spaniel",
-        "Lhasa",
         "Norwich_terrier",
-        "miniature_pinscher",
+        "Siberian_husky",
     ]
 
     train_loader, val_loader, test_loader = create_dataloaders_from_splits(
@@ -129,10 +136,21 @@ def quick5_tensorboard_train():
     print(f"   Classes: {num_classes}")
     print(f"   Batches per epoch: {len(train_loader)} train, {len(val_loader)} val")
 
-    # Modello
-    model = create_breed_classifier(
-        model_type="simple", num_classes=num_classes, dropout_rate=dropout_rate
-    )
+    # Modello (abilita facilmente transfer learning da ResNet18 se desiderato)
+    use_tl = bool(int(os.getenv("USE_TL", "0")))
+    if use_tl:
+        print("\n🧠 Using transfer learning backbone: ResNet18 (frozen)")
+        model = create_breed_classifier(
+            model_type="simple",  # ignored when pretrained_backbone is set
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+            pretrained_backbone="resnet18",
+            freeze_backbone=True,
+        )
+    else:
+        model = create_breed_classifier(
+            model_type="simple", num_classes=num_classes, dropout_rate=dropout_rate
+        )
     model = model.to(device)
 
     print(f"\n🔧 Modello configurato:")

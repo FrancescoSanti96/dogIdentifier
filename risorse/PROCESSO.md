@@ -756,7 +756,19 @@ experiments/
 - [x] Organizzazione file sperimentali
 - [x] Struttura progetto pulita e scalabile
 
-#### **8.2.2 Pronto per Deployment 🚀**
+#### **8.2.2 Aggiornamenti Agosto 2025 🚀**
+
+- ✅ Trasformazioni aggiornate: Resize(256)+CenterCrop per val/test, RandomResizedCrop per train
+- ✅ Reproducibilità: utility `utils/seed_utils.set_deterministic(42)` usata in tutti gli script
+- ✅ Sampler bilanciato: `WeightedRandomSampler` attivo in 5-razze e 10-razze
+- ✅ Transfer learning opzionale: ResNet18 (backbone congelato) attivabile con `USE_TL=1`
+- ✅ Script 5-razze ora usa `data/breeds_5` con 5 classi reali [Australian_Shepherd_Dog, Chihuahua, Japanese_spaniel, Norwich_terrier, Siberian_husky]
+- ✅ Test aggiornato (`test/test_validation.py`) per validare modello `outputs/quick5/best_model.pth` sui nuovi split
+
+Risultati recenti (run rapido 3 epoche, TL frozen):
+
+- Val Accuracy: 95.24% su `data/breeds_5`
+- Per-classe (val): Australian_Shepherd 100.0%, Chihuahua 95.2%, Japanese_spaniel 90.5%, Norwich_terrier 100.0%, Siberian_husky 90.5%
 
 Il progetto è ora nelle condizioni ideali per il training completo su 120 razze:
 
@@ -1074,7 +1086,7 @@ WEIGHT_DECAY = 1e-4
 
 ### **📊 STATUS FINALE:**
 
-- **Fase 1a** (5 razze): ✅ **CONSOLIDATO** → 66.2% test, 60.9% Australian Shepherd
+- **Fase 1a** (5 razze): ✅ **CONSOLIDATO** → 95.2% val (TL, 3 epoche su `breeds_5`), target superato
 - **Fase 1b** (10 razze): ⚠️ **DA MIGLIORARE** → 28.81% val, serve ottimizzazione
 - **Fase 2** (mio cane): 🔄 **PRONTO** → script creato, serve dataset personale
 

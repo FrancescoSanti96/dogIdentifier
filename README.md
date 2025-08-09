@@ -36,12 +36,18 @@ dogIdentifier/
    pip install -r requirements.txt
    ```
 
-2. **Training 5 razze (baseline consolidato)**:
+2. **Training 5 razze (breeds_5, TL opzionale)**:
 
    ```bash
-   python quick5_tensorboard_train.py    # Training + TensorBoard
+   # From-scratch (simple CNN)
+   python quick5_tensorboard_train.py
+
+   # Transfer learning ResNet18 (consigliato)
+   USE_TL=1 python quick5_tensorboard_train.py
+
+   # Monitor
    python launch_tensorboard.py          # Monitor: http://localhost:6006
-   python test/test_validation.py        # Test e validazione
+   python test/test_validation.py        # Test e validazione quick5
    ```
 
 3. **Training 10 razze (TOP 10 balanced)**:
@@ -51,9 +57,9 @@ dogIdentifier/
    python top10_balanced_train.py        # Training 10 razze
    ```
 
-4. **Fase 2 - Mio cane** (da implementare):
+4. **Fase 2 - Mio cane**:
    ```bash
-   # TODO: my_dog_train.py per classificazione binaria
+   python my_dog_train.py                # Classificazione binaria mio cane
    ```
 
 ## 📊 Features
@@ -84,7 +90,7 @@ dogIdentifier/
 
 ### Risultati Attuali:
 
-- **5 razze**: 66.2% test, 60.9% Australian Shepherd ✅
+- **5 razze (breeds_5)**: 95.2% val con TL ResNet18 (3 epoche, RRC+sampler) ✅
 - **10 razze**: 28.81% val (da migliorare) ⚠️
 
 ## 🎓 Educational Value

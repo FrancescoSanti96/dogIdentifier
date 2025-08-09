@@ -501,13 +501,13 @@ def get_transforms(
     IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB channel standard deviations
 
     # Base transforms for validation (no augmentation)
+    # Use Resize(256) + CenterCrop to avoid aspect ratio distortion
     val_transform = transforms.Compose(
         [
-            transforms.Resize(image_size),  # Resize to target size
-            transforms.ToTensor(),  # Convert PIL -> tensor, scale [0,1]
-            transforms.Normalize(
-                mean=IMAGENET_MEAN, std=IMAGENET_STD
-            ),  # Normalize to ImageNet stats
+            transforms.Resize(256),
+            transforms.CenterCrop(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]
     )
 
@@ -515,33 +515,51 @@ def get_transforms(
     if augmentation_config:
         transform_list = []
 
-        # 1. Initial resize (slightly larger for random crop)
-        resize_factor = 1.1  # 10% larger than target
-        enlarged_size = (
-            int(image_size[0] * resize_factor),
-            int(image_size[1] * resize_factor),
-        )
-        transform_list.append(transforms.Resize(enlarged_size))
+        # 1. Spatial cropping strategy: RandomResizedCrop or Resize+RandomCrop
+        if augmentation_config.get("random_resized_crop", False):
+            rrc_scale = augmentation_config.get("rrc_scale", (0.8, 1.0))
+            rrc_ratio = augmentation_config.get("rrc_ratio", (0.9, 1.1))
+            transform_list.append(
+                transforms.RandomResizedCrop(
+                    image_size, scale=rrc_scale, ratio=rrc_ratio
+                )
+            )
+        else:
+            resize_factor = 1.1  # 10% larger than target
+            enlarged_size = (
+                int(image_size[0] * resize_factor),
+                int(image_size[1] * resize_factor),
+            )
+            transform_list.append(transforms.Resize(enlarged_size))
+            transform_list.append(transforms.RandomCrop(image_size))
 
-        # 2. Random crop back to target size (provides spatial augmentation)
-        transform_list.append(transforms.RandomCrop(image_size))
-
-        # 3. Random horizontal flip (helps with left-right invariance)
+        # 2. Random horizontal/vertical flips
         if augmentation_config.get("horizontal_flip", False):
             transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
+        if augmentation_config.get("vertical_flip", False):
+            transform_list.append(transforms.RandomVerticalFlip(p=0.1))
 
-        # 4. Random rotation (helps with orientation invariance)
+        # 3. Random rotation
         rotation_degrees = augmentation_config.get("rotation", 0)
         if rotation_degrees > 0:
             transform_list.append(transforms.RandomRotation(degrees=rotation_degrees))
 
-        # 5. Color jittering (helps with lighting/color variations)
+        # 4. Perspective distortion
+        perspective_p = augmentation_config.get("perspective_p", 0.0)
+        if perspective_p and perspective_p > 0:
+            perspective_scale = augmentation_config.get("perspective_scale", 0.3)
+            transform_list.append(
+                transforms.RandomPerspective(
+                    distortion_scale=perspective_scale, p=perspective_p
+                )
+            )
+
+        # 5. Color jittering
         brightness_contrast = augmentation_config.get("brightness_contrast", [1.0, 1.0])
         color_jitter = augmentation_config.get("color_jitter", [0.0, 0.0, 0.0, 0.0])
-
         if brightness_contrast != [1.0, 1.0] or any(
             val > 0 for val in color_jitter[:2]
-        ):  # Only check saturation and hue
+        ):
             transform_list.append(
                 transforms.ColorJitter(
                     brightness=(
@@ -555,7 +573,7 @@ def get_transforms(
                 )
             )
 
-        # 6. Convert to tensor and normalize (same as validation)
+        # 6. ToTensor + Normalize
         transform_list.extend(
             [
                 transforms.ToTensor(),
@@ -563,15 +581,32 @@ def get_transforms(
             ]
         )
 
+        # 7. Random Erasing (applied on tensors)
+        erasing_p = augmentation_config.get("erasing_p", 0.0)
+        if erasing_p and erasing_p > 0:
+            erasing_scale = augmentation_config.get("erasing_scale", (0.02, 0.1))
+            erasing_ratio = augmentation_config.get("erasing_ratio", (0.3, 3.3))
+            transform_list.append(
+                transforms.RandomErasing(
+                    p=erasing_p, scale=erasing_scale, ratio=erasing_ratio
+                )
+            )
+
         train_transform = transforms.Compose(transform_list)
 
         print(f"🎨 Data augmentation enabled:")
         print(
+            f"   RandomResizedCrop: {augmentation_config.get('random_resized_crop', False)}"
+        )
+        print(
             f"   Horizontal flip: {augmentation_config.get('horizontal_flip', False)}"
         )
+        print(f"   Vertical flip: {augmentation_config.get('vertical_flip', False)}")
         print(f"   Rotation: ±{rotation_degrees}°")
+        print(f"   Perspective: p={perspective_p}")
         print(f"   Brightness/Contrast: {brightness_contrast}")
         print(f"   Color jitter (sat/hue): {color_jitter[:2]}")
+        print(f"   RandomErasing p: {erasing_p}")
 
     else:
         # No augmentation - use same transforms as validation
@@ -634,6 +669,10 @@ def create_dataloaders_from_splits(
             raise FileNotFoundError(f"Required directory not found: {dir_path}")
 
     # Get transforms
+    # Ensure training pipeline uses crop to avoid distortion; validation uses CenterCrop
+    # If augmentation_config not provided, enable RandomResizedCrop by default for train
+    if augmentation_config is None:
+        augmentation_config = {"random_resized_crop": True}
     train_transform, val_transform = get_transforms(image_size, augmentation_config)
 
     print(f"📁 Loading datasets from splits: {splits_dir}")
