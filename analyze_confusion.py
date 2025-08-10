@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """
-Analisi matrice di confusione per capire chi viene confuso con chi
+Analisi matrice di confusione per capire chi viene confuso con chi.
+
+Uso:
+  python analyze_confusion.py \
+    --model outputs/top10/best_model.pth \
+    --data data/top10_balanced \
+    [--batch-size 32]
 """
 
 import os
 import sys
+import argparse
 import torch
 import torch.nn as nn
 import numpy as np
@@ -20,8 +27,14 @@ from utils.dataloader import create_dataloaders_from_splits
 from models.breed_classifier import create_breed_classifier
 
 
-def analyze_confusion():
-    """Analizza la matrice di confusione del modello"""
+def analyze_confusion(model_path: str, data_dir: str, batch_size: int = 32):
+    """Analizza la matrice di confusione del modello.
+
+    Args:
+        model_path: path al checkpoint (.pth)
+        data_dir: directory con gli split (train/val/test)
+        batch_size: batch size per il test loader
+    """
     print("🔍 ANALISI MATRICE DI CONFUSIONE")
     print("=" * 50)
 
@@ -29,8 +42,7 @@ def analyze_confusion():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Carica il modello salvato (quick5 di default)
-    model_path = "outputs/quick5/best_model.pth"
+    # Carica il modello salvato
     if not os.path.exists(model_path):
         print(f"❌ Modello non trovato: {model_path}")
         return
@@ -40,7 +52,7 @@ def analyze_confusion():
 
     # Informazioni dal checkpoint
     num_classes = checkpoint["num_classes"]
-    breed_names = checkpoint["breed_names"]
+    breed_names = checkpoint.get("breed_names")
 
     print(f"📊 Modello info:")
     print(f"   Classi: {num_classes}")
@@ -74,15 +86,24 @@ def analyze_confusion():
     model = model.to(device)
     model.eval()
 
-    # Carica dataset (5 razze)
-    data_dir = "data/breeds_5"
+    # Carica dataset
     _, _, test_loader = create_dataloaders_from_splits(
         splits_dir=data_dir,
-        batch_size=32,
+        batch_size=batch_size,
         num_workers=2,
         image_size=(224, 224),
         augmentation_config={},  # No augmentation per test
     )
+
+    # Se il checkpoint non contiene i nomi delle classi, recuperarli dal dataset
+    if breed_names is None and hasattr(test_loader.dataset, "get_breed_names"):
+        try:
+            breed_names = test_loader.dataset.get_breed_names()
+        except Exception:
+            pass
+
+    if breed_names is None:
+        breed_names = [str(i) for i in range(num_classes)]
 
     print(f"📁 Test set: {len(test_loader.dataset)} samples")
 
@@ -338,7 +359,13 @@ def analyze_confusion():
 
 
 if __name__ == "__main__":
-    results = analyze_confusion()
+    parser = argparse.ArgumentParser(description="Analyze confusion matrix for a trained model")
+    parser.add_argument("--model", required=True, help="Path to model checkpoint .pth")
+    parser.add_argument("--data", required=True, help="Path to dataset splits directory")
+    parser.add_argument("--batch-size", type=int, default=32, help="Batch size for test")
+    args = parser.parse_args()
+
+    results = analyze_confusion(model_path=args.model, data_dir=args.data, batch_size=args.batch_size)
     if results:
         print(f"\n✅ Analisi completata!")
         print(f"   Controlla outputs/analysis/ per i risultati dettagliati")
