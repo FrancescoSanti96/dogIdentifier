@@ -1229,6 +1229,22 @@ Il progetto ha seguito un percorso iterativo partendo dall'obiettivo iniziale di
   - Checkpoint: `outputs/top90/best_model.pth`
   - Report test dedicato: `outputs/analysis/top90_20250810_144946/confusion_{matrix.png,analysis.txt}`
 
+- 121 razze (full121_balanced)
+
+  - Split: Train 12,100 | Val 2,541 | Test 2,783 (121 classi)
+  - Training: 45 epoche (TL frozen, patience 10)
+  - Best Val: 78.83% (ep. 45), Val Top-5 ≈ 97%
+  - Test: Acc 77.2%, macro F1 ≈ 0.768
+  - Forti (recall ≥ 95.7%): Bernese_mountain_dog, Border_terrier, English_springer, Mexican_hairless, Norwegian_elkhound, Rottweiler, Saint_Bernard, Scotch_terrier, clumber, dingo, ecc.
+  - Deboli (poche classi <50%): Eskimo_dog (21.7%), toy_poodle (26.1%), collie (26.1%), Siberian_husky (39.1%), standard_poodle (43.5%), Chihuahua/Appenzeller/English_foxhound/kelpie (47.8%)
+  - Australian_Shepherd_Dog test recall: 100.0%
+  - Logs: `outputs/tensorboard/quick121_20250810_150011`
+  - Checkpoint: `outputs/top121/best_model.pth`
+  - Report test dedicato: `outputs/analysis/top121_20250810_225455/confusion_{matrix.png,analysis.txt}`
+  - CSV per-classe: `outputs/analysis/top121_20250810_225455/per_class_metrics.csv`
+
+  Verdetto: baseline finale consolidata (Top-5 ~97%). Le poche classi sotto 50% sono coppie note molto simili o low-data; accettate come known issues. Opzionale: fine-tuning leggero su `layer4` (3–5 epoche, LR 5e-5) e/o augmentation mirata solo su tali classi.
+
 TODO mirati prossimi step (post-60):
 
 - Fine-tuning leggero: sblocca solo `layer4` per 2–4 epoche (LR 1e-4→5e-5) concentrandoti sulle classi deboli (Lhasa, Siberian_husky, silky_terrier, Irish_wolfhound, Lakeland_terrier).

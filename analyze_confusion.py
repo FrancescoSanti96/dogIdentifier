@@ -362,6 +362,8 @@ def analyze_confusion(
         "breed_names": breed_names,
         "class_accuracies": class_accuracies,
         "errors": errors,
+        "report_path": report_path,
+        "fig_path": fig_path,
     }
 
 
