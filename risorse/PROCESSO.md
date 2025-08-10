@@ -1195,12 +1195,28 @@ Il progetto ha seguito un percorso iterativo partendo dall'obiettivo iniziale di
   - Report test dedicato: `outputs/analysis/confusion_matrix.png` (30) e `outputs/analysis/confusion_analysis.txt`
 
 - 60 razze (top60_balanced)
+
   - Split: Train 6,000 | Val 1,260 | Test 1,380 (60 classi)
   - 30 epoche (TL frozen, patience 8): Best/Final Val 85.32%
   - Test: Acc 85.0%, macro F1 ≈ 0.849
   - Logs: `outputs/tensorboard/quick60_20250809_234801`
   - Checkpoint: `outputs/top60/best_model.pth`
   - Report test dedicato: `outputs/analysis/top60_20250809_234801/confusion_{matrix.png,analysis.txt}`
+
+  - Fine-tuning 60 (unfreeze `layer4` da best checkpoint)
+
+    - Setup: FINETUNE_FROM=best, UNFREEZE_LAYER4=1, LR=1e-4 → 5e-5, 3→6 epoche, patience 3
+    - Val: 84.05% (3 epoche) → 84.68% (6 epoche) [baseline 85.32%]
+    - Test: 84.2% (macro F1 0.841) vs baseline 85.0% (macro F1 ~0.849)
+    - Impatto per classe: Lhasa ↑ (da 52.2% a 73.9%), Husky ↓ (da 52.2% a 47.8%), alcune classi stabili ≥95%
+    - TensorBoard: `outputs/tensorboard/quick60_20250810_103002`, `outputs/tensorboard/quick60_20250810_104808`
+    - Report dedicato FT: `outputs/analysis/top60_ft_20250810_104808/confusion_{matrix.png,analysis.txt}`
+
+    TODO next-step (60 → 90):
+
+    - Aggiungere metrica Top-5 nei trainer 30/60/90/121
+    - Valutare fine-tuning “discriminativo” (LR più alto sul classifier, più basso su layer4)
+    - Oversampling/augmentation mirata per classi deboli citate sopra
 
 TODO mirati prossimi step (post-60):
 

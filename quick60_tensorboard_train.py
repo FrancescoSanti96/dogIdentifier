@@ -108,6 +108,28 @@ def quick60_tensorboard_train():
         )
     model = model.to(device)
 
+    # Optional: load checkpoint and/or unfreeze last block for fine-tuning
+    finetune_from = os.getenv("FINETUNE_FROM")
+    if finetune_from and os.path.exists(finetune_from):
+        print(f"\n📥 Loading checkpoint for fine-tuning: {finetune_from}")
+        ckpt = torch.load(finetune_from, map_location=device)
+        missing, unexpected = model.load_state_dict(
+            ckpt["model_state_dict"], strict=False
+        )
+        if missing or unexpected:
+            print(
+                f"   ⚠️ Missing keys: {len(missing)}, Unexpected keys: {len(unexpected)}"
+            )
+
+    if bool(int(os.getenv("UNFREEZE_LAYER4", "0"))):
+        print("🔓 Unfreezing layer4 for fine-tuning")
+        # Ensure only layer4 and head are trainable
+        for name, param in model.named_parameters():
+            if name.startswith("layer4.") or name.startswith("fc."):
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
     print(f"\n🔧 Modello configurato:")
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -133,8 +155,9 @@ def quick60_tensorboard_train():
     except TypeError:
         criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
 
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.AdamW(
-        model.parameters(), lr=learning_rate, weight_decay=weight_decay
+        trainable_params, lr=learning_rate, weight_decay=weight_decay
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=2
