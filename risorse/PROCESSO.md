@@ -1179,7 +1179,31 @@ Il progetto ha seguito un percorso iterativo partendo dall'obiettivo iniziale di
   - Checkpoint: `outputs/quick5/best_model.pth`
 
 - 10 razze (top10_balanced) – Dataset esteso dai 5, bilanciato con `prepare_top10_balanced.py`
+
   - Split: Train 1,159 | Val 243 | Test 260 (10 classi)
   - 15 epoche (TL frozen): Best/Final Val 97.94% (ep. 15)
   - Logs: `outputs/tensorboard/quick10_20250809_214647`
   - Checkpoint: `outputs/top10/best_model.pth`
+
+- 30 razze (top30_balanced)
+
+  - Split: Train 3,000 | Val 630 | Test 690 (30 classi)
+  - 20 epoche (TL frozen): Best/Final Val 89.84%
+  - Test: Acc 89.7%, macro F1 ≈ 0.895
+  - Logs: `outputs/tensorboard/quick30_20250809_223603`
+  - Checkpoint: `outputs/top30/best_model.pth`
+  - Report test dedicato: `outputs/analysis/confusion_matrix.png` (30) e `outputs/analysis/confusion_analysis.txt`
+
+- 60 razze (top60_balanced)
+  - Split: Train 6,000 | Val 1,260 | Test 1,380 (60 classi)
+  - 30 epoche (TL frozen, patience 8): Best/Final Val 85.32%
+  - Test: Acc 85.0%, macro F1 ≈ 0.849
+  - Logs: `outputs/tensorboard/quick60_20250809_234801`
+  - Checkpoint: `outputs/top60/best_model.pth`
+  - Report test dedicato: `outputs/analysis/top60_20250809_234801/confusion_{matrix.png,analysis.txt}`
+
+TODO mirati prossimi step (post-60):
+
+- Fine-tuning leggero: sblocca solo `layer4` per 2–4 epoche (LR 1e-4→5e-5) concentrandoti sulle classi deboli (Lhasa, Siberian_husky, silky_terrier, Irish_wolfhound, Lakeland_terrier).
+- Augmentation mirata per classi deboli (jitter colore, small rotations); eventuale oversampling mirato.
+- Aggiungi logging Top-5 accuracy per setup >30 classi.

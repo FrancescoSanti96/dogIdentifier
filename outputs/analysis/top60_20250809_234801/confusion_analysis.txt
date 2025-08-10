@@ -1,0 +1,144 @@
+CONFUSION MATRIX ANALYSIS
+==================================================
+
+ACCURACY PER CLASSE:
+Afghan_hound             : 100.0% (23/23)
+Australian_Shepherd_Dog  : 100.0% (23/23)
+Blenheim_spaniel         : 100.0% (23/23)
+Boston_bull              : 100.0% (23/23)
+Newfoundland             : 100.0% (23/23)
+Rottweiler               : 100.0% (23/23)
+Saint_Bernard            : 100.0% (23/23)
+bluetick                 : 100.0% (23/23)
+pug                      : 100.0% (23/23)
+African_hunting_dog      :  95.7% (22/23)
+Border_terrier           :  95.7% (22/23)
+EntleBucher              :  95.7% (22/23)
+Great_Dane               :  95.7% (22/23)
+Ibizan_hound             :  95.7% (22/23)
+Pembroke                 :  95.7% (22/23)
+Pomeranian               :  95.7% (22/23)
+Rhodesian_ridgeback      :  95.7% (22/23)
+beagle                   :  95.7% (22/23)
+chow                     :  95.7% (22/23)
+golden_retriever         :  95.7% (22/23)
+miniature_pinscher       :  95.7% (22/23)
+Japanese_spaniel         :  91.3% (21/23)
+Kerry_blue_terrier       :  91.3% (21/23)
+Norwegian_elkhound       :  91.3% (21/23)
+Old_English_sheepdog     :  91.3% (21/23)
+Samoyed                  :  91.3% (21/23)
+Scottish_deerhound       :  91.3% (21/23)
+basset                   :  91.3% (21/23)
+malamute                 :  91.3% (21/23)
+Bedlington_terrier       :  87.0% (20/23)
+Bernese_mountain_dog     :  87.0% (20/23)
+German_shepherd          :  87.0% (20/23)
+Leonberg                 :  87.0% (20/23)
+Saluki                   :  87.0% (20/23)
+Sealyham_terrier         :  87.0% (20/23)
+papillon                 :  87.0% (20/23)
+Airedale                 :  82.6% (19/23)
+Great_Pyrenees           :  82.6% (19/23)
+Labrador_retriever       :  82.6% (19/23)
+Norfolk_terrier          :  82.6% (19/23)
+West_Highland_white_terrier:  82.6% (19/23)
+whippet                  :  82.6% (19/23)
+Dandie_Dinmont           :  78.3% (18/23)
+French_bulldog           :  78.3% (18/23)
+Italian_greyhound        :  78.3% (18/23)
+bloodhound               :  78.3% (18/23)
+Maltese_dog              :  73.9% (17/23)
+Yorkshire_terrier        :  73.9% (17/23)
+basenji                  :  73.9% (17/23)
+Australian_terrier       :  69.6% (16/23)
+Tibetan_terrier          :  69.6% (16/23)
+cairn                    :  69.6% (16/23)
+Lakeland_terrier         :  65.2% (15/23)
+Shih-Tzu                 :  65.2% (15/23)
+toy_terrier              :  65.2% (15/23)
+Norwich_terrier          :  60.9% (14/23)
+Irish_wolfhound          :  56.5% (13/23)
+silky_terrier            :  56.5% (13/23)
+Lhasa                    :  52.2% (12/23)
+Siberian_husky           :  52.2% (12/23)
+
+ERRORI PIÙ COMUNI:
+Shih-Tzu             → Lhasa               :  7 volte (30.4%)
+Siberian_husky       → malamute            :  7 volte (30.4%)
+Irish_wolfhound      → Scottish_deerhound  :  6 volte (26.1%)
+Lhasa                → Shih-Tzu            :  6 volte (26.1%)
+Australian_terrier   → silky_terrier       :  5 volte (21.7%)
+Lakeland_terrier     → Airedale            :  5 volte (21.7%)
+Norwich_terrier      → Australian_terrier  :  5 volte (21.7%)
+French_bulldog       → Boston_bull         :  3 volte (13.0%)
+basenji              → toy_terrier         :  3 volte (13.0%)
+bloodhound           → Rhodesian_ridgeback :  3 volte (13.0%)
+
+CLASSIFICATION REPORT:
+                             precision    recall  f1-score   support
+
+               Afghan_hound      0.958     1.000     0.979        23
+        African_hunting_dog      1.000     0.957     0.978        23
+                   Airedale      0.792     0.826     0.809        23
+    Australian_Shepherd_Dog      0.920     1.000     0.958        23
+         Australian_terrier      0.533     0.696     0.604        23
+         Bedlington_terrier      1.000     0.870     0.930        23
+       Bernese_mountain_dog      1.000     0.870     0.930        23
+           Blenheim_spaniel      0.958     1.000     0.979        23
+             Border_terrier      0.815     0.957     0.880        23
+                Boston_bull      0.719     1.000     0.836        23
+             Dandie_Dinmont      0.947     0.783     0.857        23
+                EntleBucher      0.917     0.957     0.936        23
+             French_bulldog      1.000     0.783     0.878        23
+            German_shepherd      0.909     0.870     0.889        23
+                 Great_Dane      0.846     0.957     0.898        23
+             Great_Pyrenees      0.864     0.826     0.844        23
+               Ibizan_hound      0.917     0.957     0.936        23
+            Irish_wolfhound      0.867     0.565     0.684        23
+          Italian_greyhound      0.783     0.783     0.783        23
+           Japanese_spaniel      0.875     0.913     0.894        23
+         Kerry_blue_terrier      1.000     0.913     0.955        23
+         Labrador_retriever      0.950     0.826     0.884        23
+           Lakeland_terrier      0.714     0.652     0.682        23
+                   Leonberg      0.909     0.870     0.889        23
+                      Lhasa      0.522     0.522     0.522        23
+                Maltese_dog      0.810     0.739     0.773        23
+               Newfoundland      0.885     1.000     0.939        23
+            Norfolk_terrier      0.760     0.826     0.792        23
+         Norwegian_elkhound      0.875     0.913     0.894        23
+            Norwich_terrier      0.824     0.609     0.700        23
+       Old_English_sheepdog      0.955     0.913     0.933        23
+                   Pembroke      0.957     0.957     0.957        23
+                 Pomeranian      0.957     0.957     0.957        23
+        Rhodesian_ridgeback      0.786     0.957     0.863        23
+                 Rottweiler      0.958     1.000     0.979        23
+              Saint_Bernard      0.958     1.000     0.979        23
+                     Saluki      1.000     0.870     0.930        23
+                    Samoyed      0.875     0.913     0.894        23
+         Scottish_deerhound      0.750     0.913     0.824        23
+           Sealyham_terrier      0.909     0.870     0.889        23
+                   Shih-Tzu      0.652     0.652     0.652        23
+             Siberian_husky      0.857     0.522     0.649        23
+            Tibetan_terrier      0.667     0.696     0.681        23
+West_Highland_white_terrier      0.826     0.826     0.826        23
+          Yorkshire_terrier      0.680     0.739     0.708        23
+                    basenji      0.944     0.739     0.829        23
+                     basset      0.955     0.913     0.933        23
+                     beagle      0.917     0.957     0.936        23
+                 bloodhound      0.947     0.783     0.857        23
+                   bluetick      0.885     1.000     0.939        23
+                      cairn      0.696     0.696     0.696        23
+                       chow      1.000     0.957     0.978        23
+           golden_retriever      0.880     0.957     0.917        23
+                   malamute      0.750     0.913     0.824        23
+         miniature_pinscher      0.846     0.957     0.898        23
+                   papillon      0.952     0.870     0.909        23
+                        pug      0.920     1.000     0.958        23
+              silky_terrier      0.619     0.565     0.591        23
+                toy_terrier      0.789     0.652     0.714        23
+                    whippet      0.655     0.826     0.731        23
+
+                   accuracy                          0.850      1380
+                  macro avg      0.857     0.850     0.849      1380
+               weighted avg      0.857     0.850     0.849      1380

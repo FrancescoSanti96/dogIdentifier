@@ -27,7 +27,12 @@ from utils.dataloader import create_dataloaders_from_splits
 from models.breed_classifier import create_breed_classifier
 
 
-def analyze_confusion(model_path: str, data_dir: str, batch_size: int = 32):
+def analyze_confusion(
+    model_path: str,
+    data_dir: str,
+    batch_size: int = 32,
+    outdir: str = "outputs/analysis",
+):
     """Analizza la matrice di confusione del modello.
 
     Args:
@@ -312,9 +317,10 @@ def analyze_confusion(model_path: str, data_dir: str, batch_size: int = 32):
     plt.tight_layout()
 
     # Salva grafico
-    os.makedirs("outputs/analysis", exist_ok=True)
-    plt.savefig("outputs/analysis/confusion_matrix.png", dpi=300, bbox_inches="tight")
-    print(f"📊 Grafico salvato: outputs/analysis/confusion_matrix.png")
+    os.makedirs(outdir, exist_ok=True)
+    fig_path = os.path.join(outdir, "confusion_matrix.png")
+    plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+    print(f"📊 Grafico salvato: {fig_path}")
 
     plt.show()
 
@@ -326,7 +332,8 @@ def analyze_confusion(model_path: str, data_dir: str, batch_size: int = 32):
     )
 
     # Salva report
-    with open("outputs/analysis/confusion_analysis.txt", "w") as f:
+    report_path = os.path.join(outdir, "confusion_analysis.txt")
+    with open(report_path, "w") as f:
         f.write("CONFUSION MATRIX ANALYSIS\n")
         f.write("=" * 50 + "\n\n")
 
@@ -348,7 +355,7 @@ def analyze_confusion(model_path: str, data_dir: str, batch_size: int = 32):
             )
         )
 
-    print(f"📄 Report salvato: outputs/analysis/confusion_analysis.txt")
+    print(f"📄 Report salvato: {report_path}")
 
     return {
         "confusion_matrix": cm,
@@ -359,13 +366,29 @@ def analyze_confusion(model_path: str, data_dir: str, batch_size: int = 32):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Analyze confusion matrix for a trained model")
+    parser = argparse.ArgumentParser(
+        description="Analyze confusion matrix for a trained model"
+    )
     parser.add_argument("--model", required=True, help="Path to model checkpoint .pth")
-    parser.add_argument("--data", required=True, help="Path to dataset splits directory")
-    parser.add_argument("--batch-size", type=int, default=32, help="Batch size for test")
+    parser.add_argument(
+        "--data", required=True, help="Path to dataset splits directory"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=32, help="Batch size for test"
+    )
+    parser.add_argument(
+        "--outdir",
+        default="outputs/analysis",
+        help="Directory di output per grafici e report",
+    )
     args = parser.parse_args()
 
-    results = analyze_confusion(model_path=args.model, data_dir=args.data, batch_size=args.batch_size)
+    results = analyze_confusion(
+        model_path=args.model,
+        data_dir=args.data,
+        batch_size=args.batch_size,
+        outdir=args.outdir,
+    )
     if results:
         print(f"\n✅ Analisi completata!")
         print(f"   Controlla outputs/analysis/ per i risultati dettagliati")
