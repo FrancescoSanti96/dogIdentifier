@@ -1218,6 +1218,17 @@ Il progetto ha seguito un percorso iterativo partendo dall'obiettivo iniziale di
     - Valutare fine-tuning “discriminativo” (LR più alto sul classifier, più basso su layer4)
     - Oversampling/augmentation mirata per classi deboli citate sopra
 
+- 90 razze (top90_balanced)
+
+  - Split: Train 9,000 | Val 1,890 | Test 2,070 (90 classi)
+  - 30 epoche (TL frozen, patience 8)
+  - Test: Acc 81.4%, macro F1 ≈ 0.813
+  - Classi forti (recall ≥ 95.7%): African_hunting_dog, Border_terrier, Mexican_hairless, Norwegian_elkhound, Pomeranian, Saint_Bernard, chow, golden_retriever, keeshond, komondor, ecc.
+  - Classi deboli: Lhasa (39.1%), Siberian_husky (56.5%), American_Staffordshire_terrier (52.2%), Greater_Swiss_Mountain_dog (52.2%), Lakeland_terrier (52.2%), standard_poodle (52.2%)
+  - Logs: `outputs/tensorboard/quick90_*`
+  - Checkpoint: `outputs/top90/best_model.pth`
+  - Report test dedicato: `outputs/analysis/top90_20250810_144946/confusion_{matrix.png,analysis.txt}`
+
 TODO mirati prossimi step (post-60):
 
 - Fine-tuning leggero: sblocca solo `layer4` per 2–4 epoche (LR 1e-4→5e-5) concentrandoti sulle classi deboli (Lhasa, Siberian_husky, silky_terrier, Irish_wolfhound, Lakeland_terrier).
