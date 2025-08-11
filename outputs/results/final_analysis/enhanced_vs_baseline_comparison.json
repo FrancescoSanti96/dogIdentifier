@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-08-06T19:10:43.878561",
+  "comparison_type": "Enhanced vs Baseline Training",
+  "baseline": {
+    "approach": "Baseline Training",
+    "config": {
+      "optimizer": "Adam (standard)",
+      "data_augmentation": "Standard PyTorch transforms",
+      "regularization": "Dropout 0.3",
+      "scheduler": "ReduceLROnPlateau",
+      "additional": "Early stopping"
+    },
+    "final_results": {
+      "train_acc": 88.32,
+      "val_acc": 56.59,
+      "test_acc": 66.2,
+      "training_time": null,
+      "epochs": 12
+    }
+  },
+  "enhanced": {
+    "approach": "Enhanced Training",
+    "config": {
+      "optimizer": "AdamW + weight decay (1e-3)",
+      "data_augmentation": "Advanced Albumentations",
+      "regularization": "Dropout 0.5 + Label Smoothing 0.1",
+      "scheduler": "CosineAnnealingLR",
+      "additional": "Gradient clipping"
+    },
+    "final_results": {
+      "train_acc": 50.49,
+      "val_acc": 55.81,
+      "test_acc": 56.83,
+      "training_time": 291.5,
+      "epochs": 6
+    }
+  },
+  "differences": {
+    "train_acc_diff": -37.82999999999999,
+    "val_acc_diff": -0.7800000000000011,
+    "test_acc_diff": -9.370000000000005,
+    "epoch_diff": -6
+  },
+  "analysis": {
+    "overfitting_reduction": true,
+    "faster_convergence": true,
+    "test_performance_change": -9.370000000000005,
+    "recommendation": "Use enhanced approach with longer training"
+  }
+}

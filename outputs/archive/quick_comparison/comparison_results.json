@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-08-06T19:11:39.356049",
+  "baseline": {
+    "final_val_acc": 20.930232558139537,
+    "final_test_acc": 20.863309352517987,
+    "config": "Standard augmentation, Adam optimizer, dropout 0.3"
+  },
+  "enhanced": {
+    "final_val_acc": 24.8062015503876,
+    "final_test_acc": 29.496402877697843,
+    "config": "Albumentations augmentation, AdamW + weight decay, dropout 0.5"
+  },
+  "improvements": {
+    "val_improvement": 3.875968992248062,
+    "test_improvement": 8.633093525179856
+  }
+}

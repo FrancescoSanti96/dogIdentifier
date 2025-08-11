@@ -1,0 +1,26 @@
+{
+  "training_config": {
+    "num_epochs": 12,
+    "patience": 4,
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.001,
+    "scheduler": "CosineAnnealingLR",
+    "use_label_smoothing": true,
+    "label_smoothing_factor": 0.1,
+    "gradient_clipping": 1.0,
+    "data_augmentation": "Enhanced Albumentations"
+  },
+  "final_results": {
+    "best_val_accuracy": 57.36434108527132,
+    "final_test_accuracy": 58.273381294964025,
+    "total_training_time": 575.708575963974,
+    "total_epochs": 12
+  },
+  "model_info": {
+    "architecture": "SimpleBreedClassifier",
+    "total_parameters": 3307589,
+    "trainable_parameters": 3307589,
+    "num_classes": 5
+  }
+}
