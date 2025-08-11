@@ -17,7 +17,7 @@ Sviluppare un sistema di classificazione delle razze canine con CNN da zero, foc
 Il decidere il progetto non era semplice ero indeciso tra due macro tematiche da eplorare:
 
 - **Sentiment Analysis**: Avrei voluto sperimentare argomenti avanzanti ma per il mio obbiettivo non avevo le competenze neccessarie e il tempo per poter effettuare delle prove dato che era difficile che avrei raggiunto un risulato accettabile.
-- **Dog Breed Recognition**: Più pratico e visibile fin da subito potevo massimizzare maggioranente il tempo per avere un mvp veloce per poter avere subito un idea del successo o meno della rete neurale, inoltre ocmunque era stimolante creare un pattern doppio.
+- **Dog Breed Recognition**: Più pratico e visibile fin da subito potevo massimizzare maggioranente il tempo per avere un mvp veloce per poter avere subito un idea del successo o meno della rete neurale, inoltre era stimolante creare un pattern doppio.
 
 **Scelta finale**: Dog Breed Recognition
 
@@ -50,11 +50,17 @@ data/breeds/Images/
 
 ### **Il primo grande problema incontrato:**
 
-Nel dataset non era presente una cartella per la razza Australian_Shepherd_Dog fondamentale per il mio progetto in quanto la seocnda parte di identificare il mio cane si basa nel prima di identificare che è un Australian SHeppard
+Nel dataset non era presente una cartella per la razza Australian_Shepherd_Dog fondamentale per il mio progetto in quanto la seconda parte di identificare il mio cane si basa nel prima di identificare che è un Australian SHeppard
 
-- Aggiunta la cartella `data/breeds/Australian_Shepherd_Dog/` con 32 immagini iniziali (fonte: Google Images), ma come vedremo dai primi risultati erano insufficienti per un training efficace.
+- Aggiunta la cartella `data/breeds/Australian_Shepherd_Dog/` con 32 immagini iniziali
+  TODO link github
+  ma come vedremo dai primi risultati erano insufficienti per un training efficace, cosi sono andato ad estenderlo manaulemten epre avere un totale di circa 140 immaigni, allineato alle altre cartelle
 
 ### **2.1 Creazione Struttura Directory**
+
+La directory è campiata durante lo sviluppo per adattarsi ed avere una struttura organizzata
+
+<!-- TODO -->
 
 ```bash
 dogIdentifier_clean/
@@ -71,6 +77,8 @@ dogIdentifier_clean/
 
 ### **2.2 Installazione Dipendenze**
 
+<!-- TODO mettere tutte quelle utilizzate e speigare per cosa servono -->
+
 ```bash
 torch>=1.9.0, torchvision>=0.10.0, numpy>=1.21.0,
 matplotlib>=3.4.0, seaborn>=0.11.0, pandas>=1.3.0,
@@ -79,6 +87,8 @@ opencv-python>=4.5.0, albumentations>=1.1.0, tqdm>=4.62.0
 ```
 
 ### **2.3 Configurazione Iniziale**
+
+<!-- TODO -->
 
 Creato `config.json` con parametri per:
 
@@ -122,7 +132,9 @@ transforms.RandomCrop(224, 224)
 
 ---
 
-## **FASE 4: TRAINING E VALIDAZIONE**
+## **FASE 4: TRAINING E VALIDAZIONE modello 1**
+
+Adesso in questa parte o deciso di tracciare i vari macro test effettuati per capire il perche di dermintate scelte e nahce le difficolta incontrate
 
 ### **4.1 Training Rapido (Quick Training)**
 
@@ -1244,6 +1256,39 @@ Il progetto ha seguito un percorso iterativo partendo dall'obiettivo iniziale di
   - CSV per-classe: `outputs/analysis/top121_20250810_225455/per_class_metrics.csv`
 
   Verdetto: baseline finale consolidata (Top-5 ~97%). Le poche classi sotto 50% sono coppie note molto simili o low-data; accettate come known issues. Opzionale: fine-tuning leggero su `layer4` (3–5 epoche, LR 5e-5) e/o augmentation mirata solo su tali classi.
+
+  - Fine-tuning 121 (unfreeze `layer4`) – NON ADOTTATO
+
+    - Setup: `FINETUNE_FROM=outputs/top121/best_model.pth`, `UNFREEZE_LAYER4=1`, `LR=5e-5`, `EPOCHS=5`, `PATIENCE=3`, TL ResNet18
+    - Validation: 71.39% (Top-5 95.20%) vs baseline 78.83% (Top-5 97.07%) → Δ −7.44 pt
+    - Test: 71.0% circa vs baseline 77.2% → Δ −6.2 pt
+    - Errori frequenti (confusioni):
+      - Siberian_husky → Eskimo_dog (≈ 65%)
+      - malamute → Eskimo_dog (≈ 52%)
+      - collie → Shetland_sheepdog (≈ 48%)
+      - Shih-Tzu → Lhasa (≈ 44%)
+      - Chesapeake_Bay_retriever → Weimaraner (≈ 39%)
+      - miniature_poodle → toy_poodle (≈ 39%)
+      - silky_terrier → Australian_terrier (≈ 35%)
+      - standard_schnauzer → miniature_schnauzer (≈ 35%)
+      - Appenzeller → EntleBucher (≈ 30%)
+      - Norwich_terrier → Australian_terrier (≈ 26%)
+    - Artefatti:
+      - TensorBoard: `outputs/tensorboard/quick121_20250811_102403`
+      - Report/CM: `outputs/analysis/top121_ft_20250811_111713/confusion_{analysis.txt,matrix.png}`
+    - Decisione: non adottato. Il checkpoint baseline resta quello ufficiale: `outputs/top121/best_model.pth`.
+
+  - Fine-tuning 121 (run 20250811_130325, unfreeze `layer4`) – NON ADOTTATO
+
+    - Setup: `UNFREEZE_LAYER4=1`, `LR=2e-5`, `EPOCHS=12`, `PATIENCE=5`, TL ResNet18 (frozen→layer4 sbloccato)
+    - Validation: 71.98% vs baseline 78.83% → Δ −6.85 pt
+    - Test: 72.5% (macro F1 ≈ 0.719) vs baseline 77.2% → Δ −4.7 pt
+    - Classi critiche: collie 13.0%, Walker_hound 26.1%, miniature_poodle 30.4%, Eskimo_dog 34.8%, Siberian_husky 39.1%
+    - Confusioni principali: collie→Shetland_sheepdog, miniature_poodle→toy_poodle, Walker_hound→English_foxhound, Shih-Tzu→Lhasa, Great_Pyrenees→kuvasz, Siberian_husky→malamute
+    - Artefatti:
+      - TensorBoard: `outputs/tensorboard/quick121_20250811_130325`
+      - Report/CM: `outputs/analysis/top121_ft_20250811_130325/confusion_{analysis.txt,matrix.png}`
+    - Decisione: non adottato. Baseline invariata: `outputs/top121/best_model.pth`.
 
 TODO mirati prossimi step (post-60):
 
