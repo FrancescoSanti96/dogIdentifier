@@ -26,6 +26,7 @@ from collections import defaultdict, Counter
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.config_helper import ConfigHelper
 
 
 # Configurazioni per diverse scale di razze
@@ -268,7 +269,9 @@ def create_balanced_splits(
     return stats
 
 
-def prepare_breeds_dataset(num_breeds: int, source_dir: str = "data/breeds"):
+def prepare_breeds_dataset(
+    num_breeds: int, source_dir: str = "data/breeds", config_path: str = "config.json"
+):
     """Prepara dataset bilanciato per il numero specificato di razze"""
 
     if num_breeds not in BREED_CONFIGS:
@@ -278,6 +281,17 @@ def prepare_breeds_dataset(num_breeds: int, source_dir: str = "data/breeds"):
         )
 
     config = BREED_CONFIGS[num_breeds]
+    # Se presente un config.json, consenti di sovrascrivere parametri
+    cfg = None
+    try:
+        cfg = ConfigHelper(config_path)
+    except Exception:
+        cfg = None
+
+    if cfg is not None:
+        # Se definito un path sorgente nel config, usalo come default
+        source_dir = cfg.get("data.breed_dataset_path", source_dir)
+
     source_path = Path(source_dir)
     output_path = Path(config["output_dir"])
 
@@ -330,11 +344,17 @@ def main():
         default="data/breeds",
         help="Directory dataset sorgente (default: data/breeds)",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.json",
+        help="Percorso al file di configurazione JSON (default: config.json)",
+    )
 
     args = parser.parse_args()
 
     try:
-        stats = prepare_breeds_dataset(args.breeds, args.source)
+        stats = prepare_breeds_dataset(args.breeds, args.source, args.config)
         print(f"\n✅ Preparazione completata con successo!")
         print(f"   Breeds: {stats['num_breeds']}")
         print(f"   Total images: {stats['total_images']:,}")

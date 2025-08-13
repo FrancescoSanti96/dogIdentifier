@@ -103,7 +103,12 @@ def topk_accuracy(output: torch.Tensor, target: torch.Tensor, topk=(1,)):
     return res
 
 
-def train_breeds(num_breeds: int):
+def train_breeds(
+    num_breeds: int,
+    config_path: str = "config.json",
+    profile: str | None = None,
+    cli_overrides: dict | None = None,
+):
     """
     Training unificato per il numero specificato di razze
 
@@ -116,7 +121,53 @@ def train_breeds(num_breeds: int):
             f"Supportati: {list(BREED_CONFIGS.keys())}"
         )
 
-    config = BREED_CONFIGS[num_breeds]
+    # Base defaults from hardcoded mapping
+    base_defaults = BREED_CONFIGS[num_breeds].copy()
+    # Add global defaults not present in BREED_CONFIGS
+    base_defaults.setdefault("batch_size", 32)
+    base_defaults.setdefault("dropout", 0.4)
+    base_defaults.setdefault("weight_decay", 5e-4)
+    base_defaults.setdefault("use_tl", 1)
+
+    # Optional profile from config.json
+    profile_overrides = {}
+    try:
+        cfg_profile = (
+            ConfigHelper(config_path).get(f"profiles.{profile}") if profile else None
+        )
+        if cfg_profile and isinstance(cfg_profile, dict):
+            # Normalize keys to lowercase for convenience
+            norm = {str(k).lower(): v for k, v in cfg_profile.items()}
+            # Map common keys
+            if "epochs" in norm:
+                profile_overrides["epochs"] = int(norm["epochs"])
+            if "e" in norm:
+                profile_overrides["epochs"] = int(norm["e"])
+            if "learning_rate" in norm:
+                profile_overrides["lr"] = float(norm["learning_rate"])
+            if "lr" in norm:
+                profile_overrides["lr"] = float(norm["lr"])
+            if "patience" in norm:
+                profile_overrides["patience"] = int(norm["patience"])
+            if "batch_size" in norm:
+                profile_overrides["batch_size"] = int(norm["batch_size"])
+            if "dropout" in norm:
+                profile_overrides["dropout"] = float(norm["dropout"])
+            if "wd" in norm or "weight_decay" in norm:
+                profile_overrides["weight_decay"] = float(
+                    norm.get("wd", norm.get("weight_decay"))
+                )
+            if "use_tl" in norm:
+                profile_overrides["use_tl"] = int(norm["use_tl"])
+            if "data" in norm or "data_dir" in norm or "splits_dir" in norm:
+                profile_overrides["data_dir"] = (
+                    norm.get("data") or norm.get("data_dir") or norm.get("splits_dir")
+                )
+    except Exception:
+        pass
+
+    # Merge: defaults <- profile
+    merged_defaults = {**base_defaults, **profile_overrides}
 
     print(f"🚀 TRAINING {num_breeds} BREEDS + TENSORBOARD")
     print("=" * 50)
@@ -137,14 +188,45 @@ def train_breeds(num_breeds: int):
     print(f"   🌐 Avvia TensorBoard: python scripts/launch_tensorboard.py")
     print(f"   🔗 URL: http://localhost:6006")
 
-    # Configuration (with environment overrides)
-    data_dir = os.getenv("SPLITS_DIR", config["data_dir"])
-    num_epochs = int(os.getenv("EPOCHS", str(config["epochs"])))
-    batch_size = int(os.getenv("BATCH_SIZE", "32"))
-    learning_rate = float(os.getenv("LR", str(config["lr"])))
-    patience = int(os.getenv("PATIENCE", str(config["patience"])))
-    dropout_rate = float(os.getenv("DROPOUT", "0.4"))
-    weight_decay = float(os.getenv("WD", "5e-4"))
+    # Configuration (precedence: CLI > ENV > profile > defaults)
+    # Start from merged defaults (profile already applied)
+    data_dir = merged_defaults["data_dir"]
+    num_epochs = merged_defaults["epochs"]
+    learning_rate = merged_defaults["lr"]
+    patience = merged_defaults["patience"]
+    batch_size = merged_defaults["batch_size"]
+    dropout_rate = merged_defaults["dropout"]
+    weight_decay = merged_defaults["weight_decay"]
+    use_tl_default = merged_defaults["use_tl"]
+
+    # Apply ENV overrides
+    data_dir = os.getenv("SPLITS_DIR", data_dir)
+    num_epochs = int(os.getenv("EPOCHS", str(num_epochs)))
+    batch_size = int(os.getenv("BATCH_SIZE", str(batch_size)))
+    learning_rate = float(os.getenv("LR", str(learning_rate)))
+    patience = int(os.getenv("PATIENCE", str(patience)))
+    dropout_rate = float(os.getenv("DROPOUT", str(dropout_rate)))
+    weight_decay = float(os.getenv("WD", str(weight_decay)))
+    use_tl = int(os.getenv("USE_TL", str(use_tl_default)))
+
+    # Apply CLI overrides last
+    if cli_overrides:
+        if cli_overrides.get("data_dir"):
+            data_dir = cli_overrides["data_dir"]
+        if cli_overrides.get("epochs") is not None:
+            num_epochs = int(cli_overrides["epochs"])
+        if cli_overrides.get("batch_size") is not None:
+            batch_size = int(cli_overrides["batch_size"])
+        if cli_overrides.get("lr") is not None:
+            learning_rate = float(cli_overrides["lr"])
+        if cli_overrides.get("patience") is not None:
+            patience = int(cli_overrides["patience"])
+        if cli_overrides.get("dropout") is not None:
+            dropout_rate = float(cli_overrides["dropout"])
+        if cli_overrides.get("weight_decay") is not None:
+            weight_decay = float(cli_overrides["weight_decay"])
+        if cli_overrides.get("use_tl") is not None:
+            use_tl = int(cli_overrides["use_tl"])
 
     print(f"\n⚡ CONFIGURAZIONE:")
     print(f"   Dataset: {data_dir}")
@@ -154,9 +236,11 @@ def train_breeds(num_breeds: int):
     print(f"   Early stopping patience: {patience}")
     print(f"   Dropout: {dropout_rate}")
     print(f"   Weight decay: {weight_decay}")
+    if profile:
+        print(f"   Profile: {profile} (from {config_path})")
 
     # Data loading
-    cfg = ConfigHelper()
+    cfg = ConfigHelper(config_path)
     augmentation_config = cfg.get_augmentation_config() or {}
     augmentation_config.setdefault("random_resized_crop", True)
     augmentation_config.setdefault("rrc_scale", (0.85, 1.0))
@@ -177,7 +261,7 @@ def train_breeds(num_breeds: int):
     print(f"🎯 Breeds nel dataset: {num_classes}")
 
     # Model creation
-    use_tl = bool(int(os.getenv("USE_TL", "1")))
+    use_tl = bool(use_tl)
     if use_tl:
         print("\n🧠 Using transfer learning backbone: ResNet18 (frozen)")
     else:
@@ -399,11 +483,46 @@ def main():
         choices=[5, 10, 30, 60, 90, 121],
         help="Numero di razze da addestrare",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.json",
+        help="Percorso al file di configurazione JSON (default: config.json)",
+    )
+    parser.add_argument(
+        "--profile",
+        type=str,
+        help="Nome profilo dal file di configurazione (sezione profiles)",
+    )
+    # Optional CLI overrides (take precedence over env/profile/defaults)
+    parser.add_argument("--epochs", type=int, help="Override numero epoche")
+    parser.add_argument("--lr", type=float, help="Override learning rate")
+    parser.add_argument("--patience", type=int, help="Override patience")
+    parser.add_argument("--batch-size", type=int, help="Override batch size")
+    parser.add_argument("--dropout", type=float, help="Override dropout")
+    parser.add_argument("--weight-decay", type=float, help="Override weight decay")
+    parser.add_argument("--data-dir", type=str, help="Override dataset splits dir")
+    parser.add_argument(
+        "--use-tl",
+        type=int,
+        choices=[0, 1],
+        help="Override use transfer learning (1/0)",
+    )
 
     args = parser.parse_args()
 
     try:
-        results = train_breeds(args.breeds)
+        overrides = {
+            "epochs": args.epochs,
+            "lr": args.lr,
+            "patience": args.patience,
+            "batch_size": args.batch_size,
+            "dropout": args.dropout,
+            "weight_decay": args.weight_decay,
+            "data_dir": args.data_dir,
+            "use_tl": args.use_tl,
+        }
+        results = train_breeds(args.breeds, args.config, args.profile, overrides)
         print(f"\n✅ Training completato con successo!")
         print(f"   Breeds: {results['num_breeds']}")
         print(f"   Best accuracy: {results['best_val_acc']:.2f}%")

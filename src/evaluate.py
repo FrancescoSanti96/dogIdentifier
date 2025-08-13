@@ -22,6 +22,7 @@ from tqdm import tqdm
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.config_helper import ConfigHelper
 
 from utils.dataloader import create_dataloaders_from_splits
 from models.breed_classifier import create_breed_classifier
@@ -383,7 +384,27 @@ if __name__ == "__main__":
         default="outputs/analysis",
         help="Directory di output per grafici e report",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.json",
+        help="Percorso al file di configurazione JSON (default: config.json)",
+    )
     args = parser.parse_args()
+
+    # Se presente config, consenti override di data_dir e batch size
+    try:
+        cfg = ConfigHelper(args.config)
+        default_data_dir = cfg.get("paths.default_eval_data_dir") or cfg.get(
+            "data.balanced_splits_dir"
+        )
+        if default_data_dir and (args.data is None or args.data == ""):
+            args.data = default_data_dir
+        batch_override = cfg.get("data.batch_size")
+        if batch_override:
+            args.batch_size = int(batch_override)
+    except Exception:
+        pass
 
     results = analyze_confusion(
         model_path=args.model,
