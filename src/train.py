@@ -14,6 +14,7 @@ Usage:
 
 Environment variables:
     USE_TL=1          # Transfer Learning (default: 1)
+    MODEL_TYPE=full   # Model architecture: 'full' or 'simple' (default: full)
     EPOCHS=45         # Number of epochs (default: auto per breeds)
     BATCH_SIZE=32     # Batch size (default: 32)
     LR=0.0008         # Learning rate (default: auto per breeds)
@@ -171,7 +172,7 @@ def train_breeds(
 
     print(f"🚀 TRAINING {num_breeds} BREEDS + TENSORBOARD")
     print("=" * 50)
-    print(f"📊 Training {config['description']}")
+    print(f"📊 Training {BREED_CONFIGS[num_breeds]['description']}")
 
     set_deterministic(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -208,6 +209,7 @@ def train_breeds(
     dropout_rate = float(os.getenv("DROPOUT", str(dropout_rate)))
     weight_decay = float(os.getenv("WD", str(weight_decay)))
     use_tl = int(os.getenv("USE_TL", str(use_tl_default)))
+    model_type = os.getenv("MODEL_TYPE", "full").lower()  # 'full' or 'simple'
 
     # Apply CLI overrides last
     if cli_overrides:
@@ -227,6 +229,8 @@ def train_breeds(
             weight_decay = float(cli_overrides["weight_decay"])
         if cli_overrides.get("use_tl") is not None:
             use_tl = int(cli_overrides["use_tl"])
+        if cli_overrides.get("model_type") is not None:
+            model_type = cli_overrides["model_type"].lower()
 
     print(f"\n⚡ CONFIGURAZIONE:")
     print(f"   Dataset: {data_dir}")
@@ -264,15 +268,20 @@ def train_breeds(
     use_tl = bool(use_tl)
     if use_tl:
         print("\n🧠 Using transfer learning backbone: ResNet18 (frozen)")
+        model = create_breed_classifier(
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+            pretrained_backbone="resnet18",
+            freeze_backbone=True,
+        )
     else:
-        print("\n🧠 Training from scratch")
-
-    model = create_breed_classifier(
-        num_classes=num_classes,
-        dropout_rate=dropout_rate,
-        use_transfer_learning=use_tl,
-        freeze_backbone=True,
-    )
+        print(f"\n🧠 Training from scratch - Architecture: {model_type.upper()}")
+        model = create_breed_classifier(
+            model_type=model_type,
+            num_classes=num_classes,
+            dropout_rate=dropout_rate,
+            use_batch_norm=True,
+        )
     model = model.to(device)
 
     # Training setup
@@ -281,9 +290,9 @@ def train_breeds(
         model.parameters(), lr=learning_rate, weight_decay=weight_decay
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.8, patience=3, verbose=True
+        optimizer, mode="min", factor=0.8, patience=3
     )
-    early_stopping = EarlyStopping(patience=patience, min_delta=0.001)
+    early_stopping = EarlyStopping(patience=patience, delta=0.001)
 
     # Hyperparameters for logging
     hparams = {
@@ -295,6 +304,7 @@ def train_breeds(
         "dropout": dropout_rate,
         "weight_decay": weight_decay,
         "use_transfer_learning": use_tl,
+        "model_type": model_type if not use_tl else "resnet18",
         "patience": patience,
         "dataset": data_dir,
     }
@@ -508,6 +518,12 @@ def main():
         choices=[0, 1],
         help="Override use transfer learning (1/0)",
     )
+    parser.add_argument(
+        "--model-type",
+        type=str,
+        choices=["full", "simple"],
+        help="Override model architecture type (full/simple)",
+    )
 
     args = parser.parse_args()
 
@@ -521,6 +537,7 @@ def main():
             "weight_decay": args.weight_decay,
             "data_dir": args.data_dir,
             "use_tl": args.use_tl,
+            "model_type": args.model_type,
         }
         results = train_breeds(args.breeds, args.config, args.profile, overrides)
         print(f"\n✅ Training completato con successo!")
