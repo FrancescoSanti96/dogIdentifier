@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed and determinism utilities
+Utilità per riproducibilità e determinismo degli esperimenti
 """
 
 import os
@@ -10,17 +10,23 @@ import torch
 
 
 def set_deterministic(seed: int = 42) -> None:
-    """Set seeds and torch/cuDNN flags for reproducibility.
+    """
+    Imposta seed per riproducibilità completa degli esperimenti
+
+    Controlla tutti i generatori random: Python, NumPy, PyTorch CPU/GPU, cuDNN.
+    Trade-off: riproducibilità perfetta vs performance leggermente ridotte.
 
     Args:
-        seed: The random seed to use for Python, NumPy and PyTorch.
+        seed: Seed per tutti i generatori random (default: 42)
     """
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)  # Operazioni di hash
+    random.seed(seed)  # Random Python standard
+    np.random.seed(seed)  # Random NumPy
+    torch.manual_seed(seed)  # PyTorch CPU
+
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+        torch.cuda.manual_seed_all(seed)  # PyTorch GPU (tutti i device)
+
+    # cuDNN: determinismo vs performance
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-

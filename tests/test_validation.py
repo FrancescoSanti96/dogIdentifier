@@ -14,7 +14,7 @@ from torchvision import transforms
 import argparse
 from collections import defaultdict
 
-# Add parent directory to path
+# Aggiungi directory padre al path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.breed_classifier import create_breed_classifier

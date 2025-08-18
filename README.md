@@ -103,30 +103,61 @@ python src/my_dog_train.py
 | 90      | 81.4%     | 96%     | 81.4%     | 95%+                | ✅     |
 | **121** | **78.8%** | **97%** | **77.2%** | **100%**            | ✅     |
 
-## 📁 **Struttura Progetto**
+## 🏗️ **Architettura del Progetto**
 
+### **Struttura Modulare**
 ```
 dogIdentifier/
-├── src/                    # 🎯 Script unificati (CORE)
-│   ├── train.py           # Training unificato con switching FROM SCRATCH/TL
-│   ├── prepare_data.py    # Preparazione dataset bilanciati
-│   ├── evaluate.py        # Valutazione modelli con confusion matrix
-│   └── my_dog_train.py    # Fase 2: classificazione binaria personale
-├── models/                 # 🏗️ Architetture CNN
+├── 🎯 src/                 # Script principali
+│   ├── train.py           # Training scalabile (5→121 razze)
+│   ├── prepare_data.py    # Dataset bilanciati
+│   ├── evaluate.py        # Analisi confusion matrix
+│   └── my_dog_train.py    # Classificazione binaria
+├── 🏗️ models/             # Architetture CNN
 │   └── breed_classifier.py # Factory: BreedClassifier + ResNet18-TL
-├── utils/                  # ⚙️ Utilities
-│   ├── dataloader.py      # Custom dataset + augmentation
+├── ⚙️ utils/               # Utilities modulari
+│   ├── dataloader.py      # Dataset custom + augmentation
 │   ├── early_stopping.py  # Prevenzione overfitting
-│   └── metrics.py         # Metriche personalizzate
-├── outputs/               # 📊 Risultati e modelli
-│   ├── models/           # Checkpoint migliori (breeds_N/)
-│   ├── analysis/         # Confusion matrix, per-class metrics
-│   ├── results/          # Summary finali
+│   └── config_helper.py   # Gestione configurazioni
+├── 📊 outputs/            # Risultati e modelli
+│   ├── models/           # Checkpoint (breeds_N/)
+│   ├── analysis/         # Confusion matrix
 │   └── tensorboard/      # Logs TensorBoard
-└── data/                 # 📂 Dataset
-    ├── breeds_5/         # 5 razze bilanciate
-    ├── top30_balanced/   # 30 razze (confronto FROM SCRATCH vs TL)
-    └── full121_balanced/ # 121 razze complete Stanford Dogs
+└── 📂 data/               # Dataset organizzati
+    ├── breeds_5/         # 5 razze (test rapidi)
+    ├── top30_balanced/   # 30 razze (confronto)
+    └── full121_balanced/ # 121 razze complete
+```
+
+### **Architetture CNN Implementate**
+
+#### **1. BreedClassifier (FROM SCRATCH - 134M parametri)**
+```python
+# Architettura VGG-like personalizzata
+Input: (batch, 3, 224, 224)
+├── 5 Blocchi Convoluzionali: 3→64→128→256→512→512 channels
+├── Batch Normalization + Dropout2D per regolarizzazione
+├── 3 Layer Fully Connected: 25088→4096→4096→classes
+└── Output: (batch, num_classes) logits
+```
+
+#### **2. Transfer Learning (ResNet18 + Custom Head)**
+```python
+# Backbone pre-addestrato + classificatore custom
+ResNet18(ImageNet) → freeze_backbone=True
+├── Backbone congelato: ~11M parametri (non trainable)
+├── Custom head: Dropout + Linear(512→classes)
+└── Solo ~61K parametri trainable
+```
+
+### **Pipeline di Training**
+```python
+# Configurazione ottimizzata per deep learning
+├── Loss: CrossEntropyLoss + Label Smoothing (0.1)
+├── Optimizer: AdamW + Weight Decay (5e-4)
+├── Scheduler: ReduceLROnPlateau (factor=0.8)
+├── Regularization: Dropout + Early Stopping + Gradient Clipping
+└── Monitoring: TensorBoard + Checkpoint automatici
 ```
 
 ## 💻 **Competenze Tecniche Dimostrate**
