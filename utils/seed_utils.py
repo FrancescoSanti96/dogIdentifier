@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed and determinism utilities
+Utilità per riproducibilità e determinismo degli esperimenti
 """
 
 import os
@@ -10,16 +10,30 @@ import torch
 
 
 def set_deterministic(seed: int = 42) -> None:
-    """Set seeds and torch/cuDNN flags for reproducibility.
+    """
+    Imposta seed per riproducibilità completa degli esperimenti
+
+    Controlla tutti i generatori random: Python, NumPy, PyTorch CPU/GPU, cuDNN.
+    Trade-off: riproducibilità perfetta vs performance leggermente ridotte.
 
     Args:
-        seed: The random seed to use for Python, NumPy and PyTorch.
+        seed: Seed per tutti i generatori random (default: 42)
     """
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    # STEP 1: Seed tutti i generatori random per consistency end-to-end
+    os.environ["PYTHONHASHSEED"] = str(seed)  # Hash operations (dict ordering, etc.)
+    random.seed(seed)  # Python built-in random module
+    np.random.seed(seed)  # NumPy random number generator
+    torch.manual_seed(seed)  # PyTorch CPU tensor operations
+
+    # STEP 2: GPU determinism (se disponibile)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+        torch.cuda.manual_seed_all(seed)  # Tutti i GPU device CUDA
+
+    # STEP 3: cuDNN Backend Control - CRITICO per CNN deep learning
+    # Trade-off importante: DETERMINISMO vs PERFORMANCE
+    torch.backends.cudnn.deterministic = (
+        True  # Forza algoritmi deterministici (stesso risultato sempre)
+    )
+    torch.backends.cudnn.benchmark = (
+        False  # Disabilita auto-optimization (varia tra run)
+    )

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Breed classifier model - Custom CNN architecture for dog breed classification
+Modelli classificatori di razze - Architetture CNN personalizzate per classificazione razze canine
 """
 
 import torch
@@ -12,8 +12,15 @@ from torchvision import models
 
 class BreedClassifier(nn.Module):
     """
-    Custom CNN architecture for dog breed classification
-    Built from scratch, no pre-trained models
+    Architettura CNN personalizzata per classificazione razze canine
+    Costruita da zero, senza modelli pre-addestrati
+
+    Architettura VGG-like personalizzata con 134M parametri:
+    - 5 blocchi convoluzionali con feature maps crescenti (64→128→256→512→512)
+    - Batch normalization per stabilità training
+    - Dropout 2D per regolarizzazione convoluzionale
+    - 3 layer fully connected per classificazione finale
+    - Adaptive average pooling per flessibilità input size
     """
 
     def __init__(
@@ -23,12 +30,12 @@ class BreedClassifier(nn.Module):
         use_batch_norm: bool = True,
     ):
         """
-        Initialize breed classifier
+        Inizializza il classificatore di razze
 
         Args:
-            num_classes: Number of dog breeds to classify
-            dropout_rate: Dropout rate for regularization
-            use_batch_norm: Whether to use batch normalization
+            num_classes: Numero di razze canine da classificare
+            dropout_rate: Tasso di dropout per la regolarizzazione
+            use_batch_norm: Se utilizzare batch normalization
         """
         super(BreedClassifier, self).__init__()
 
@@ -36,27 +43,29 @@ class BreedClassifier(nn.Module):
         self.dropout_rate = dropout_rate
         self.use_batch_norm = use_batch_norm
 
-        # Feature extraction layers
+        # Feature extraction layers - Architettura VGG-like con miglioramenti moderni
         self.features = nn.Sequential(
-            # Block 1: 3 -> 64 channels
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),
+            # Blocco 1: 3 -> 64 canali (224x224 -> 112x112)
+            # Primo blocco: estrae feature di basso livello (edges, textures)
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),  # Mantiene spatial size
+            nn.BatchNorm2d(64) if use_batch_norm else nn.Identity(),  # Normalizzazione
+            nn.ReLU(inplace=True),  # Attivazione non-lineare
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),  # Doppia convoluzione
             nn.BatchNorm2d(64) if use_batch_norm else nn.Identity(),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64) if use_batch_norm else nn.Identity(),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout2d(dropout_rate * 0.5),
-            # Block 2: 64 -> 128 channels
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Downsampling 2x
+            nn.Dropout2d(dropout_rate * 0.5),  # Dropout spaziale ridotto
+            # Blocco 2: 64 -> 128 canali (112x112 -> 56x56)
+            # Secondo blocco: feature di medio livello (patterns, shapes)
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128) if use_batch_norm else nn.Identity(),
             nn.ReLU(inplace=True),
             nn.Conv2d(128, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128) if use_batch_norm else nn.Identity(),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Downsampling 2x
             nn.Dropout2d(dropout_rate * 0.5),
-            # Block 3: 128 -> 256 channels
+            # Blocco 3: 128 -> 256 canali
             nn.Conv2d(128, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256) if use_batch_norm else nn.Identity(),
             nn.ReLU(inplace=True),
@@ -68,7 +77,7 @@ class BreedClassifier(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Dropout2d(dropout_rate),
-            # Block 4: 256 -> 512 channels
+            # Blocco 4: 256 -> 512 canali
             nn.Conv2d(256, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512) if use_batch_norm else nn.Identity(),
             nn.ReLU(inplace=True),
@@ -80,7 +89,7 @@ class BreedClassifier(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Dropout2d(dropout_rate),
-            # Block 5: 512 -> 512 channels
+            # Blocco 5: 512 -> 512 canali
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512) if use_batch_norm else nn.Identity(),
             nn.ReLU(inplace=True),
@@ -94,44 +103,58 @@ class BreedClassifier(nn.Module):
             nn.Dropout2d(dropout_rate),
         )
 
-        # Classifier layers
+        # Classifier layers - Classificatore finale con regolarizzazione
         self.classifier = nn.Sequential(
-            nn.AdaptiveAvgPool2d((7, 7)),
-            nn.Flatten(),
-            nn.Linear(512 * 7 * 7, 4096),
+            # Adaptive pooling: converte qualsiasi size in 7x7 (flessibilità input)
+            nn.AdaptiveAvgPool2d((7, 7)),  # 512 x 7 x 7 = 25,088 features
+            nn.Flatten(),  # Converte in vettore 1D
+            # Primo FC layer: riduzione dimensionalità con regolarizzazione
+            nn.Linear(512 * 7 * 7, 4096),  # 25,088 -> 4,096 features
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Dropout per prevenire overfitting
+            # Secondo FC layer: ulteriore elaborazione features
+            nn.Linear(4096, 4096),  # Mantiene 4,096 features
             nn.ReLU(inplace=True),
             nn.Dropout(dropout_rate),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),
-            nn.Linear(4096, num_classes),
+            # Output layer: classificazione finale (no activation, gestita da loss)
+            nn.Linear(4096, num_classes),  # 4,096 -> num_classes logits
         )
 
         self._initialize_weights()
 
     def _initialize_weights(self):
-        """Initialize model weights"""
+        """
+        Inizializza i pesi del modello usando le migliori pratiche
+
+        Utilizza inizializzazioni specifiche per ogni tipo di layer:
+        - Conv2D: Kaiming normal (ottimale per ReLU)
+        - BatchNorm: weight=1, bias=0 (standard)
+        - Linear: distribuzione normale con std piccola
+        """
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
+                # Inizializzazione Kaiming per layer convoluzionali con ReLU
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
+                # Batch normalization: weight=1 (no scaling), bias=0 (no shift)
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
+                # Layer lineari: distribuzione normale piccola
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass
+        Passaggio in avanti
 
         Args:
-            x: Input tensor of shape (batch_size, 3, height, width)
+            x: Tensore di input di forma (batch_size, 3, height, width)
 
         Returns:
-            Output tensor of shape (batch_size, num_classes)
+            Tensore di output di forma (batch_size, num_classes)
         """
         x = self.features(x)
         x = self.classifier(x)
@@ -140,7 +163,7 @@ class BreedClassifier(nn.Module):
 
 class SimpleBreedClassifier(nn.Module):
     """
-    Simplified CNN model for comparison experiments
+    Modello CNN semplificato per esperimenti di confronto
     """
 
     def __init__(
@@ -150,12 +173,12 @@ class SimpleBreedClassifier(nn.Module):
         use_batch_norm: bool = True,
     ):
         """
-        Initialize simple breed classifier
+        Inizializza il classificatore semplificato
 
         Args:
-            num_classes: Number of dog breeds to classify
-            dropout_rate: Dropout rate for regularization
-            use_batch_norm: Whether to use batch normalization
+            num_classes: Numero di razze canine da classificare
+            dropout_rate: Tasso di dropout per la regolarizzazione
+            use_batch_norm: Se utilizzare batch normalization
         """
         super(SimpleBreedClassifier, self).__init__()
 
@@ -163,9 +186,9 @@ class SimpleBreedClassifier(nn.Module):
         self.dropout_rate = dropout_rate
         self.use_batch_norm = use_batch_norm
 
-        # Simple feature extraction
+        # Estrazione feature semplice
         self.features = nn.Sequential(
-            # Simple architecture: 3 conv layers
+            # Architettura semplice: 3 layer convoluzionali
             nn.Conv2d(3, 32, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
@@ -177,7 +200,7 @@ class SimpleBreedClassifier(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
 
-        # Simple classifier
+        # Classificatore semplice
         self.classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d((7, 7)),
             nn.Flatten(),
@@ -190,7 +213,7 @@ class SimpleBreedClassifier(nn.Module):
         self._initialize_weights()
 
     def _initialize_weights(self):
-        """Initialize model weights"""
+        """Inizializza i pesi del modello"""
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
@@ -202,13 +225,13 @@ class SimpleBreedClassifier(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass
+        Passaggio in avanti
 
         Args:
-            x: Input tensor of shape (batch_size, 3, height, width)
+            x: Tensore di input di forma (batch_size, 3, height, width)
 
         Returns:
-            Output tensor of shape (batch_size, num_classes)
+            Tensore di output di forma (batch_size, num_classes)
         """
         x = self.features(x)
         x = self.classifier(x)
@@ -224,95 +247,84 @@ def create_breed_classifier(
     freeze_backbone: bool = True,
 ) -> nn.Module:
     """
-    Factory function to create breed classifier
+    Funzione factory per creare classificatori di razze
 
     Args:
-        model_type: 'full' or 'simple'
-        num_classes: Number of classes
-        dropout_rate: Dropout rate
-        use_batch_norm: Whether to use batch normalization
+        model_type: 'full' o 'simple'
+        num_classes: Numero di classi
+        dropout_rate: Tasso di dropout
+        use_batch_norm: Se utilizzare batch normalization
+        pretrained_backbone: Backbone pre-addestrato (es. 'resnet18')
+        freeze_backbone: Se congelare il backbone
 
     Returns:
-        Initialized model
+        Modello inizializzato
     """
     if pretrained_backbone:
-        # Transfer learning path using torchvision backbones (e.g., 'resnet18')
+        # Transfer Learning Path: utilizza modello pre-addestrato su ImageNet
+        # Vantaggi: convergenza più veloce, meno dati richiesti, feature generiche già apprese
         if pretrained_backbone.lower() == "resnet18":
+            # Carica ResNet18 con pesi ImageNet (11M parametri backbone)
             backbone = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-            in_features = backbone.fc.in_features
-            # Replace final classifier
+            in_features = backbone.fc.in_features  # 512 feature ResNet18
+
+            # Sostituisci classificatore finale: da 1000 classi ImageNet → num_classes razze
             backbone.fc = nn.Sequential(
-                nn.Dropout(p=dropout_rate),
-                nn.Linear(in_features, num_classes),
+                nn.Dropout(p=dropout_rate),  # Regolarizzazione finale
+                nn.Linear(in_features, num_classes),  # 512 → num_classes
             )
             model = backbone
-            # Optionally freeze all backbone except final head
+
+            # Feature Extraction vs Fine-tuning
             if freeze_backbone:
+                # Freeze backbone: solo classificatore finale trainable (~61K parametri)
                 for name, param in model.named_parameters():
-                    # keep head trainable
-                    if not name.startswith("fc."):
+                    if not name.startswith(
+                        "fc."
+                    ):  # Mantieni solo testa finale trainable
                         param.requires_grad = False
         else:
-            raise ValueError(f"Unsupported pretrained_backbone: {pretrained_backbone}")
+            raise ValueError(
+                f"Backbone pre-addestrato non supportato: {pretrained_backbone}"
+            )
     elif model_type == "full":
+        # From Scratch Path - Full: architettura CNN personalizzata completa
+        # 134M parametri, VGG-like, tutti i layer trainable da zero
         model = BreedClassifier(
             num_classes=num_classes,
             dropout_rate=dropout_rate,
             use_batch_norm=use_batch_norm,
         )
     elif model_type == "simple":
+        # From Scratch Path - Simple: architettura CNN semplificata
+        # 3.3M parametri, per test rapidi e confronti
         model = SimpleBreedClassifier(
             num_classes=num_classes,
             dropout_rate=dropout_rate,
             use_batch_norm=use_batch_norm,
         )
     else:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Tipo di modello sconosciuto: {model_type}")
 
     return model
 
 
 def get_model_summary(model: nn.Module) -> str:
     """
-    Get a summary of model parameters
+    Ottieni un riassunto dei parametri del modello
 
     Args:
-        model: PyTorch model
+        model: Modello PyTorch
 
     Returns:
-        Summary string
+        Stringa riassuntiva
     """
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    summary = f"Model Summary:\n"
-    summary += f"  Total parameters: {total_params:,}\n"
-    summary += f"  Trainable parameters: {trainable_params:,}\n"
-    summary += f"  Model type: {model.__class__.__name__}\n"
+    summary = f"Riassunto Modello:\n"
+    summary += f"  Parametri totali: {total_params:,}\n"
+    summary += f"  Parametri addestrabili: {trainable_params:,}\n"
+    summary += f"  Tipo modello: {model.__class__.__name__}\n"
 
     return summary
-
-
-if __name__ == "__main__":
-    # Test model creation
-    print("🧪 Testing breed classifier models...")
-
-    # Test full model
-    full_model = create_breed_classifier("full", num_classes=120)
-    print(get_model_summary(full_model))
-
-    # Test simple model
-    simple_model = create_breed_classifier("simple", num_classes=10)
-    print(get_model_summary(simple_model))
-
-    # Test forward pass
-    batch_size = 4
-    input_tensor = torch.randn(batch_size, 3, 224, 224)
-
-    full_output = full_model(input_tensor)
-    simple_output = simple_model(input_tensor)
-
-    print(f"✅ Full model output shape: {full_output.shape}")
-    print(f"✅ Simple model output shape: {simple_output.shape}")
-
-    print("✅ Breed classifier models test completed!")

@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """
-Data loading utilities for dog breed identifier project
+Utilità per il caricamento dati - Progetto Dog Breed Identifier
 
-This module provides:
-1. DogBreedDataset: Custom dataset for multi-class breed classification
-2. MyDogDataset: Binary classification for personal dog identification
-3. Data transformation utilities with augmentation
-4. DataLoader creation with proper train/val/test splits
-5. Dataset visualization and analysis tools
-
-Author: Francesco Santi
-Date: August 2025
+Questo modulo fornisce:
+1. DogBreedDataset: Dataset personalizzato per classificazione multi-class
+2. MyDogDataset: Classificazione binaria per identificazione cane personale
+3. Trasformazioni immagini con data augmentation
+4. Creazione DataLoader con split train/val/test
 """
 
 import os
@@ -34,25 +30,21 @@ from .config_helper import ConfigHelper
 
 class DogBreedDataset(Dataset):
     """
-    Custom Dataset for dog breed classification
+    Dataset personalizzato per classificazione razze canine
 
-    This dataset handles loading and preprocessing of dog breed images for multi-class
-    classification. It supports both full dataset loading and subset loading for testing.
+    Gestisce caricamento e pre-processing di immagini per classificazione multi-class.
+    Supporta caricamento completo del dataset o subset per testing.
 
-    Features:
-    - Automatic breed folder detection and indexing
-    - Image format support: .jpg, .jpeg, .png
-    - Optional breed limiting for quick testing
-    - Built-in dataset statistics and distribution analysis
+    Caratteristiche:
+    - Rilevamento automatico cartelle razze e indicizzazione
+    - Supporto formati: .jpg, .jpeg, .png
+    - Limitazione razze opzionale per test rapidi
+    - Statistiche dataset integrate
 
     Args:
-        data_dir (str): Directory containing breed folders
-        transform (transforms.Compose, optional): Image transformations to apply
-        max_breeds (int, optional): Maximum number of breeds to include (for testing)
-
-    Example:
-        >>> dataset = DogBreedDataset('data/breeds', max_breeds=10)
-        >>> print(f"Dataset has {len(dataset)} images from {len(dataset.breed_names)} breeds")
+        data_dir (str): Directory contenente cartelle delle razze
+        transform (transforms.Compose, optional): Trasformazioni immagini
+        max_breeds (int, optional): Numero massimo razze da includere
     """
 
     def __init__(
@@ -65,17 +57,17 @@ class DogBreedDataset(Dataset):
         """Initialize dataset with automatic breed discovery and loading"""
         self.data_dir = Path(data_dir)
         self.transform = transform
-        self.images = []  # List of image paths
-        self.labels = []  # List of breed indices (0, 1, 2, ...)
-        self.breed_names = []  # List of breed names (folder names)
+        self.images = []  # Lista percorsi immagini
+        self.labels = []  # Lista indici razze (0, 1, 2, ...)
+        self.breed_names = []  # Lista nomi razze (nomi cartelle)
         self.max_breeds = max_breeds
         self.allowed_breeds = allowed_breeds
 
-        # Validate data directory exists
+        # Valida che la directory dati esista
         if not self.data_dir.exists():
-            raise FileNotFoundError(f"Data directory not found: {data_dir}")
+            raise FileNotFoundError(f"Directory dati non trovata: {data_dir}")
 
-        # Load data and build breed mapping
+        # Carica dati e costruisci mapping razze
         self._load_data(max_breeds)
         self._validate_dataset()
 
@@ -83,23 +75,28 @@ class DogBreedDataset(Dataset):
         """
         Load image paths and labels from breed folders
 
-        This method:
-        1. Discovers all breed folders in data_dir
+        Questo metodo implementa il discovery automatico delle razze e la creazione
+        del mapping breed_name -> label_index. È fondamentale per la scalabilità
+        del progetto (5 -> 121 razze) e mantiene consistenza nell'ordinamento.
+
+        Process:
+        1. Discovers all breed folders in data_dir (alphabetical order)
         2. Optionally limits to max_breeds for testing
         3. Loads all valid image files from each breed folder
         4. Creates label mapping (breed_name -> index)
+        5. Validates dataset consistency and reports statistics
 
         Args:
             max_breeds (int, optional): Limit number of breeds for quick testing
         """
-        # Get all breed folders
+        # Ottieni tutte le cartelle razze
         available_folders = {
             f.name: f
             for f in self.data_dir.iterdir()
             if f.is_dir() and not f.name.startswith(".")
         }
 
-        # If a subset with explicit order is provided, enforce it
+        # Se è fornito un sottoinsieme con ordine esplicito, applicalo
         if self.allowed_breeds:
             breed_folders = []
             for breed in self.allowed_breeds:
@@ -108,7 +105,7 @@ class DogBreedDataset(Dataset):
                 else:
                     print(f"⚠️  Allowed breed '{breed}' not found in {self.data_dir}")
         else:
-            # Default: alphabetical order for consistency
+            # Default: ordine alfabetico per consistenza
             breed_folders = sorted(
                 list(available_folders.values()), key=lambda p: p.name
             )
@@ -116,26 +113,26 @@ class DogBreedDataset(Dataset):
         if not breed_folders:
             raise ValueError(f"No breed folders found in {self.data_dir}")
 
-        # Limit breeds for testing if specified
+        # Limita razze per test se specificato
         if max_breeds and not self.allowed_breeds:
             breed_folders = breed_folders[:max_breeds]
-            print(f"🔬 Using only first {max_breeds} breeds for testing")
+            print(f"🔬 Uso solo le prime {max_breeds} razze per test")
 
         print(f"📁 Loading {len(breed_folders)} breeds...")
 
-        # Load images from each breed folder
+        # Carica immagini da ogni cartella razza
         for breed_idx, breed_folder in enumerate(breed_folders):
             breed_name = breed_folder.name
             self.breed_names.append(breed_name)
 
-            # Get all supported image files
+            # Ottieni tutti i file immagine supportati
             image_files = self._get_image_files(breed_folder)
 
             if not image_files:
                 print(f"⚠️  No images found in {breed_name} folder")
                 continue
 
-            # Add images and labels
+            # Aggiungi immagini e etichette
             for img_path in image_files:
                 self.images.append(str(img_path))
                 self.labels.append(breed_idx)
@@ -162,7 +159,7 @@ class DogBreedDataset(Dataset):
         for extension in supported_extensions:
             image_files.extend(list(folder_path.glob(extension)))
 
-        return sorted(image_files)  # Sort for consistent ordering
+        return sorted(image_files)  # Ordina per consistenza
 
     def _validate_dataset(self):
         """
@@ -176,7 +173,7 @@ class DogBreedDataset(Dataset):
         if len(self.images) == 0:
             raise ValueError("No images loaded. Check your data directory structure.")
 
-        # Calculate breed distribution
+        # Calcola distribuzione razze
         breed_counts = Counter(self.labels)
         min_images = min(breed_counts.values())
         max_images = max(breed_counts.values())
@@ -187,13 +184,15 @@ class DogBreedDataset(Dataset):
         print(f"   Max images per breed: {max_images}")
         print(f"   Avg images per breed: {avg_images:.1f}")
 
-        # Check for severely imbalanced breeds
+        # Controlla razze severamente sbilanciate
         imbalance_ratio = max_images / min_images if min_images > 0 else float("inf")
         if imbalance_ratio > 5:
-            print(f"⚠️  Dataset imbalance detected! Ratio: {imbalance_ratio:.1f}:1")
-            print("   Consider balancing the dataset for better training results")
+            print(
+                f"⚠️  Sbilanciamento dataset rilevato! Rapporto: {imbalance_ratio:.1f}:1"
+            )
+            print("   Considera di bilanciare il dataset per risultati migliori")
 
-        # Show top and bottom breeds by count
+        # Mostra razze con più e meno immagini
         sorted_breeds = sorted(breed_counts.items(), key=lambda x: x[1], reverse=True)
         print(
             f"\n🏆 Most images: {self.breed_names[sorted_breeds[0][0]]} ({sorted_breeds[0][1]} images)"
@@ -243,10 +242,10 @@ class DogBreedDataset(Dataset):
         label = self.labels[idx]
 
         try:
-            # Load image and convert to RGB (removes alpha channel if present)
+            # Carica immagine e converti in RGB (rimuove canale alpha se presente)
             image = Image.open(img_path).convert("RGB")
 
-            # Apply transformations if provided
+            # Applica trasformazioni se fornite
             if self.transform:
                 image = self.transform(image)
 
@@ -265,15 +264,15 @@ class DogBreedDataset(Dataset):
 
 
 class MyDogDataset(Dataset):
-    """Custom Dataset for personal dog identification (binary classification)"""
+    """Dataset personalizzato per identificazione cane personale (classificazione binaria)"""
 
     def __init__(self, data_dir: str, transform=None):
         """
-        Initialize personal dog dataset
+        Inizializza dataset per cane personale
 
         Args:
-            data_dir: Directory with 'my_dog' and 'other_dogs' folders
-            transform: Image transformations
+            data_dir: Directory con cartelle 'my_dog' e 'other_dogs'
+            transform: Trasformazioni immagini
         """
         self.data_dir = Path(data_dir)
         self.transform = transform
@@ -287,7 +286,7 @@ class MyDogDataset(Dataset):
         my_dog_dir = self.data_dir / "my_dog"
         other_dogs_dir = self.data_dir / "other_dogs"
 
-        # Load my dog images (label 1)
+        # Carica immagini del mio cane (etichetta 1)
         if my_dog_dir.exists():
             my_dog_images = (
                 list(my_dog_dir.glob("*.jpg"))
@@ -299,7 +298,7 @@ class MyDogDataset(Dataset):
                 self.images.append(str(img_path))
                 self.labels.append(1)
 
-        # Load other dogs images (label 0)
+        # Carica immagini altri cani (etichetta 0)
         if other_dogs_dir.exists():
             other_dog_images = (
                 list(other_dogs_dir.glob("*.jpg"))
@@ -323,7 +322,7 @@ class MyDogDataset(Dataset):
         img_path = self.images[idx]
         label = self.labels[idx]
 
-        # Load and transform image
+        # Carica e trasforma immagine
         image = Image.open(img_path).convert("RGB")
 
         if self.transform:
@@ -332,150 +331,30 @@ class MyDogDataset(Dataset):
         return image, label
 
 
-def create_dataset_splits(
-    source_dir: str,
-    output_dir: str,
-    train_ratio: float = 0.7,
-    val_ratio: float = 0.15,
-    test_ratio: float = 0.15,
-    seed: int = 42,
-) -> None:
-    """
-    Create physical train/validation/test splits by copying files to separate folders
-
-    This function creates a proper dataset structure with separate folders for
-    train, validation, and test sets. This is better than random splits because:
-    1. Ensures consistent splits across different runs
-    2. Allows for proper evaluation without data leakage
-    3. Makes it easier to debug and analyze specific sets
-
-    Args:
-        source_dir (str): Source directory containing breed folders
-        output_dir (str): Output directory where splits will be created
-        train_ratio (float): Proportion for training set (default: 0.7)
-        val_ratio (float): Proportion for validation set (default: 0.15)
-        test_ratio (float): Proportion for test set (default: 0.15)
-        seed (int): Random seed for reproducible splits
-
-    Directory structure created:
-        output_dir/
-        ├── train/
-        │   ├── breed1/
-        │   ├── breed2/
-        │   └── ...
-        ├── val/
-        │   ├── breed1/
-        │   ├── breed2/
-        │   └── ...
-        └── test/
-            ├── breed1/
-            ├── breed2/
-            └── ...
-
-    Example:
-        >>> create_dataset_splits('data/breeds', 'data/splits')
-        >>> # Creates data/splits/train/, data/splits/val/, data/splits/test/
-    """
-    # Validate split ratios
-    total_ratio = train_ratio + val_ratio + test_ratio
-    if not np.isclose(total_ratio, 1.0, atol=1e-6):
-        raise ValueError(f"Split ratios must sum to 1.0, got {total_ratio}")
-
-    source_path = Path(source_dir)
-    output_path = Path(output_dir)
-
-    if not source_path.exists():
-        raise FileNotFoundError(f"Source directory not found: {source_dir}")
-
-    # Create output directories
-    train_dir = output_path / "train"
-    val_dir = output_path / "val"
-    test_dir = output_path / "test"
-
-    for split_dir in [train_dir, val_dir, test_dir]:
-        split_dir.mkdir(parents=True, exist_ok=True)
-
-    print(f"🔄 Creating dataset splits in {output_dir}")
-    print(f"   Train: {train_ratio:.1%}, Val: {val_ratio:.1%}, Test: {test_ratio:.1%}")
-
-    # Set random seed for reproducibility
-    np.random.seed(seed)
-
-    # Get all breed folders
-    breed_folders = sorted(
-        [f for f in source_path.iterdir() if f.is_dir() and not f.name.startswith(".")]
-    )
-
-    total_files_copied = 0
-    split_stats = {"train": 0, "val": 0, "test": 0}
-
-    for breed_folder in breed_folders:
-        breed_name = breed_folder.name
-        print(f"   Processing {breed_name}...")
-
-        # Create breed folders in each split
-        (train_dir / breed_name).mkdir(exist_ok=True)
-        (val_dir / breed_name).mkdir(exist_ok=True)
-        (test_dir / breed_name).mkdir(exist_ok=True)
-
-        # Get all image files
-        image_files = []
-        for ext in ["*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"]:
-            image_files.extend(list(breed_folder.glob(ext)))
-
-        if not image_files:
-            print(f"     ⚠️  No images found in {breed_name}")
-            continue
-
-        # Shuffle images for random split
-        image_files = list(image_files)
-        np.random.shuffle(image_files)
-
-        # Calculate split indices
-        n_images = len(image_files)
-        n_train = int(n_images * train_ratio)
-        n_val = int(n_images * val_ratio)
-        n_test = n_images - n_train - n_val  # Remaining goes to test
-
-        # Split files
-        train_files = image_files[:n_train]
-        val_files = image_files[n_train : n_train + n_val]
-        test_files = image_files[n_train + n_val :]
-
-        # Copy files to respective directories
-        for files, target_dir, split_name in [
-            (train_files, train_dir / breed_name, "train"),
-            (val_files, val_dir / breed_name, "val"),
-            (test_files, test_dir / breed_name, "test"),
-        ]:
-            for img_file in files:
-                target_path = target_dir / img_file.name
-                shutil.copy2(img_file, target_path)
-                split_stats[split_name] += 1
-
-        total_files_copied += len(image_files)
-        print(f"     ✅ {breed_name}: {n_train} train, {n_val} val, {n_test} test")
-
-    print(f"\n✅ Dataset splitting completed!")
-    print(f"   Total files processed: {total_files_copied}")
-    print(f"   Train: {split_stats['train']} files")
-    print(f"   Validation: {split_stats['val']} files")
-    print(f"   Test: {split_stats['test']} files")
-    print(f"   Output directory: {output_path}")
-
-
 def get_transforms(
     image_size: Tuple[int, int] = (224, 224), augmentation_config: Optional[Dict] = None
 ) -> Tuple[transforms.Compose, transforms.Compose]:
     """
-    Create training and validation image transforms
+    Crea trasformazioni per immagini di training e validazione
 
-    This function creates two separate transform pipelines:
-    1. Training transforms: Include data augmentation for better generalization
-    2. Validation transforms: Only normalization and resizing (no augmentation)
+    Questa funzione è cruciale per le performance del modello. Crea due pipeline
+    separate per massimizzare l'efficacia del training e la consistenza della validazione.
 
-    The transforms follow ImageNet normalization standards for transfer learning
-    compatibility and consistent performance across different architectures.
+    Design Philosophy:
+    1. Training transforms: Data augmentation per generalizzazione e robustezza
+    2. Validation transforms: Solo preprocessing (no augmentation) per risultati consistenti
+    3. ImageNet normalization: Compatibilità con transfer learning e best practices
+
+    Training Pipeline:
+    - RandomResizedCrop: Evita distorsioni aspect ratio + augmentation spaziale
+    - Horizontal flip: Simmetria naturale per cani (non cambia la razza)
+    - Rotation: Robustezza a orientamenti diversi (limitato per non distorcere)
+    - Color jittering: Robustezza a condizioni illuminazione diverse
+    - Normalization: ImageNet stats per compatibilità backbone pre-trained
+
+    Validation Pipeline:
+    - Resize(256) + CenterCrop(224): Preprocessing deterministico
+    - Normalization: Stesse stats del training per consistency
 
     Args:
         image_size (Tuple[int, int]): Target image size (width, height)
@@ -485,6 +364,9 @@ def get_transforms(
             - rotation (int): Maximum rotation degrees
             - brightness_contrast (List[float]): [brightness_factor, contrast_factor]
             - color_jitter (List[float]): [saturation, hue, -, -] (last two unused)
+            - random_resized_crop (bool): Use RandomResizedCrop vs Resize+RandomCrop
+            - rrc_scale (Tuple[float, float]): Scale range for RandomResizedCrop
+            - rrc_ratio (Tuple[float, float]): Aspect ratio range for RandomResizedCrop
 
     Returns:
         Tuple[transforms.Compose, transforms.Compose]: (train_transform, val_transform)
@@ -493,15 +375,17 @@ def get_transforms(
         >>> train_tf, val_tf = get_transforms((224, 224), {
         ...     'horizontal_flip': True,
         ...     'rotation': 15,
-        ...     'brightness_contrast': [0.8, 1.2]
+        ...     'brightness_contrast': [0.8, 1.2],
+        ...     'random_resized_crop': True,
+        ...     'rrc_scale': (0.85, 1.0)
         ... })
     """
-    # ImageNet normalization values - standard for most pre-trained models
-    IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB channel means
-    IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB channel standard deviations
+    # Valori normalizzazione ImageNet - standard per la maggior parte dei modelli pre-addestrati
+    IMAGENET_MEAN = [0.485, 0.456, 0.406]  # Medie canali RGB
+    IMAGENET_STD = [0.229, 0.224, 0.225]  # Deviazioni standard canali RGB
 
-    # Base transforms for validation (no augmentation)
-    # Use Resize(256) + CenterCrop to avoid aspect ratio distortion
+    # Trasformazioni base per validazione (senza augmentation)
+    # Usa Resize(256) + CenterCrop per evitare distorsioni aspect ratio
     val_transform = transforms.Compose(
         [
             transforms.Resize(256),
@@ -511,7 +395,7 @@ def get_transforms(
         ]
     )
 
-    # Training transforms with optional augmentation
+    # Trasformazioni training con augmentation opzionale
     if augmentation_config:
         transform_list = []
 
@@ -609,9 +493,9 @@ def get_transforms(
         print(f"   RandomErasing p: {erasing_p}")
 
     else:
-        # No augmentation - use same transforms as validation
+        # Nessuna augmentation - usa stesse trasformazioni della validazione
         train_transform = val_transform
-        print("🎨 No data augmentation applied")
+        print("🎨 Nessuna data augmentation applicata")
 
     return train_transform, val_transform
 
@@ -626,58 +510,60 @@ def create_dataloaders_from_splits(
     use_weighted_sampler: bool = False,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
-    Create dataloaders from pre-split dataset directories
+    Crea dataloaders da directory dataset pre-divisi
 
-    This function loads data from separate train/val/test directories created by
-    create_dataset_splits(). This approach is better than random splits because:
-    1. Ensures consistent evaluation across runs
-    2. Prevents data leakage between sets
-    3. Allows for proper statistical analysis
+    Questa funzione carica dati da directory separate train/val/test.
+    Questo approccio è migliore degli split casuali perché:
+    1. Garantisce valutazione consistente tra esecuzioni
+    2. Previene data leakage tra set
+    3. Permette analisi statistiche appropriate
 
     Args:
-        splits_dir (str): Directory containing train/, val/, test/ folders
-        batch_size (int): Batch size for dataloaders
-        num_workers (int): Number of worker processes for data loading
-        image_size (Tuple[int, int]): Target image size
-        augmentation_config (Dict, optional): Data augmentation configuration
+        splits_dir (str): Directory contenente cartelle train/, val/, test/
+        batch_size (int): Dimensione batch per dataloaders
+        num_workers (int): Numero di processi worker per caricamento dati
+        image_size (Tuple[int, int]): Dimensione immagine target
+        augmentation_config (Dict, optional): Configurazione data augmentation
+        allowed_breeds (List[str], optional): Lista razze da includere
+        use_weighted_sampler (bool): Se usare campionamento pesato
 
     Returns:
         Tuple[DataLoader, DataLoader, DataLoader]: (train_loader, val_loader, test_loader)
 
-    Expected directory structure:
+    Struttura directory prevista:
         splits_dir/
         ├── train/
-        │   ├── breed1/
-        │   └── breed2/
+        │   ├── razza1/
+        │   └── razza2/
         ├── val/
-        │   ├── breed1/
-        │   └── breed2/
+        │   ├── razza1/
+        │   └── razza2/
         └── test/
-            ├── breed1/
-            └── breed2/
+            ├── razza1/
+            └── razza2/
 
-    Example:
+    Esempio:
         >>> train_loader, val_loader, test_loader = create_dataloaders_from_splits('data/splits')
     """
     splits_path = Path(splits_dir)
 
-    # Validate directory structure
+    # Valida struttura directory
     required_dirs = ["train", "val", "test"]
     for dir_name in required_dirs:
         dir_path = splits_path / dir_name
         if not dir_path.exists():
-            raise FileNotFoundError(f"Required directory not found: {dir_path}")
+            raise FileNotFoundError(f"Directory richiesta non trovata: {dir_path}")
 
-    # Get transforms
-    # Ensure training pipeline uses crop to avoid distortion; validation uses CenterCrop
-    # If augmentation_config not provided, enable RandomResizedCrop by default for train
+    # Ottieni trasformazioni
+    # Assicura che pipeline training usi crop per evitare distorsioni; validazione usa CenterCrop
+    # Se augmentation_config non fornito, abilita RandomResizedCrop di default per train
     if augmentation_config is None:
         augmentation_config = {"random_resized_crop": True}
     train_transform, val_transform = get_transforms(image_size, augmentation_config)
 
-    print(f"📁 Loading datasets from splits: {splits_dir}")
+    print(f"📁 Caricamento dataset da splits: {splits_dir}")
 
-    # Create datasets for each split
+    # Crea dataset per ogni split
     train_dataset = DogBreedDataset(
         str(splits_path / "train"),
         transform=train_transform,
@@ -694,18 +580,18 @@ def create_dataloaders_from_splits(
         allowed_breeds=allowed_breeds,
     )
 
-    # Verify all datasets have the same breeds
+    # Verifica che tutti i dataset abbiano le stesse razze
     train_breeds = set(train_dataset.get_breed_names())
     val_breeds = set(val_dataset.get_breed_names())
     test_breeds = set(test_dataset.get_breed_names())
 
     if not (train_breeds == val_breeds == test_breeds):
-        print("⚠️  Warning: Not all splits contain the same breeds!")
-        print(f"   Train breeds: {len(train_breeds)}")
-        print(f"   Val breeds: {len(val_breeds)}")
-        print(f"   Test breeds: {len(test_breeds)}")
+        print("⚠️  Attenzione: Non tutti gli split contengono le stesse razze!")
+        print(f"   Razze train: {len(train_breeds)}")
+        print(f"   Razze val: {len(val_breeds)}")
+        print(f"   Razze test: {len(test_breeds)}")
 
-        # Find missing breeds
+        # Trova razze mancanti
         all_breeds = train_breeds | val_breeds | test_breeds
         for split_name, breeds in [
             ("train", train_breeds),
@@ -714,31 +600,41 @@ def create_dataloaders_from_splits(
         ]:
             missing = all_breeds - breeds
             if missing:
-                print(f"   Missing from {split_name}: {sorted(missing)}")
+                print(f"   Mancanti da {split_name}: {sorted(missing)}")
 
-    # If allowed_breeds provided, report the enforced order
+    # Se allowed_breeds fornito, riporta l'ordine imposto
     if allowed_breeds:
-        print(f"🔢 Enforcing breed order: {allowed_breeds}")
+        print(f"🔢 Imposizione ordine razze: {allowed_breeds}")
 
-    # Create dataloaders
+    # Crea DataLoaders - cuore del sistema di caricamento dati
     if use_weighted_sampler:
-        # Compute class-balanced sample weights for the training set
+        # Weighted Sampling per bilanciare classi sbilanciate durante training
+        # Obiettivo: ogni classe ha stessa probabilità di essere campionata in ogni epoca
         import numpy as _np
 
+        # Calcola distribuzione classi nel training set
         labels_np = _np.array(train_dataset.labels)
         class_counts = _np.bincount(
             labels_np, minlength=len(train_dataset.breed_names)
         ).astype(_np.float32)
-        class_counts[class_counts == 0] = 1.0
-        class_weights = class_counts.max() / class_counts
-        sample_weights = [class_weights[label] for label in labels_np]
+        class_counts[class_counts == 0] = 1.0  # Evita divisione per zero
+
+        # Peso inversamente proporzionale alla frequenza: classi rare pesano di più
+        class_weights = (
+            class_counts.max() / class_counts
+        )  # [max_count/count_i for each class]
+        sample_weights = [
+            class_weights[label] for label in labels_np
+        ]  # Peso per ogni campione
+
+        # WeightedRandomSampler: campiona con probabilità proporzionale ai pesi
         sampler = WeightedRandomSampler(
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
-            shuffle=False,
+            shuffle=False,  # Sampler gestisce l'ordine
             sampler=sampler,
             num_workers=num_workers,
             pin_memory=True,
@@ -780,151 +676,3 @@ def create_dataloaders_from_splits(
     print(f"   Number of classes: {len(train_dataset.get_breed_names())}")
 
     return train_loader, val_loader, test_loader
-
-
-def create_dataloaders(
-    config: ConfigHelper, max_breeds: Optional[int] = None
-) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """
-    Create train, validation, and test dataloaders
-
-    Args:
-        config: Configuration helper
-        max_breeds: Maximum number of breeds (for testing)
-
-    Returns:
-        Tuple of (train_loader, val_loader, test_loader)
-    """
-    data_config = config.get_data_config()
-    augmentation_config = config.get_augmentation_config()
-
-    # Get transforms
-    train_transform, val_transform = get_transforms(
-        tuple(data_config["image_size"]), augmentation_config
-    )
-
-    # Create full dataset
-    full_dataset = DogBreedDataset(
-        data_config["breed_dataset_path"],
-        transform=train_transform,
-        max_breeds=max_breeds,
-    )
-
-    # Split dataset
-    train_size = int(data_config["train_split"] * len(full_dataset))
-    val_size = int(data_config["val_split"] * len(full_dataset))
-    test_size = len(full_dataset) - train_size - val_size
-
-    train_dataset, temp_dataset = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size + test_size]
-    )
-
-    val_dataset, test_dataset = torch.utils.data.random_split(
-        temp_dataset, [val_size, test_size]
-    )
-
-    # Update transforms for validation and test
-    val_dataset.dataset.transform = val_transform
-    test_dataset.dataset.transform = val_transform
-
-    # Create dataloaders
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=data_config["batch_size"],
-        shuffle=True,
-        num_workers=data_config["num_workers"],
-        pin_memory=True,
-    )
-
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=data_config["batch_size"],
-        shuffle=False,
-        num_workers=data_config["num_workers"],
-        pin_memory=True,
-    )
-
-    test_loader = DataLoader(
-        test_dataset,
-        batch_size=data_config["batch_size"],
-        shuffle=False,
-        num_workers=data_config["num_workers"],
-        pin_memory=True,
-    )
-
-    print(f"📊 Dataset split:")
-    print(f"   Training: {len(train_dataset)} samples")
-    print(f"   Validation: {len(val_dataset)} samples")
-    print(f"   Test: {len(test_dataset)} samples")
-    print(f"   Classes: {len(full_dataset.get_breed_names())}")
-
-    return train_loader, val_loader, test_loader
-
-
-def visualize_dataset_distribution(
-    dataset: DogBreedDataset, save_path: Optional[str] = None
-):
-    """
-    Visualize dataset distribution across breeds
-
-    Args:
-        dataset: DogBreedDataset instance
-        save_path: Path to save plot
-    """
-    breed_names = dataset.get_breed_names()
-    breed_counts = {}
-
-    for label in dataset.labels:
-        breed_name = breed_names[label]
-        breed_counts[breed_name] = breed_counts.get(breed_name, 0) + 1
-
-    # Create plot
-    plt.figure(figsize=(15, 8))
-
-    breeds = list(breed_counts.keys())
-    counts = list(breed_counts.values())
-
-    # Sort by count
-    sorted_indices = np.argsort(counts)[::-1]
-    breeds = [breeds[i] for i in sorted_indices]
-    counts = [counts[i] for i in sorted_indices]
-
-    # Plot top 20 breeds
-    top_n = min(20, len(breeds))
-    plt.bar(range(top_n), counts[:top_n])
-    plt.xticks(range(top_n), breeds[:top_n], rotation=45, ha="right")
-    plt.ylabel("Number of Images")
-    plt.title("Dataset Distribution - Top 20 Breeds")
-    plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"📊 Distribution plot saved to {save_path}")
-
-    plt.show()
-
-
-if __name__ == "__main__":
-    # Test dataloader
-    config = ConfigHelper()
-
-    # Create sample data for testing
-    sample_data_dir = Path("data/breeds")
-    if not sample_data_dir.exists():
-        print("⚠️  No dataset found. Create sample data for testing...")
-        sample_data_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create a few sample breed folders
-        for i, breed in enumerate(["sample_breed_1", "sample_breed_2"]):
-            breed_dir = sample_data_dir / breed
-            breed_dir.mkdir(exist_ok=True)
-            print(f"📁 Created {breed_dir}")
-
-    # Test dataset loading
-    try:
-        dataset = DogBreedDataset(str(sample_data_dir), max_breeds=2)
-        print(f"✅ Dataset loaded successfully: {len(dataset)} images")
-        print(f"📋 Breeds: {dataset.get_breed_names()}")
-    except Exception as e:
-        print(f"❌ Error loading dataset: {e}")
-        print("💡 Make sure you have the Stanford Dogs dataset in data/breeds/")

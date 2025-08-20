@@ -1,1 +1,1 @@
-# Models package for dog breed identifier 
+# Package modelli per identificatore razze canine

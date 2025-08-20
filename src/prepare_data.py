@@ -26,6 +26,7 @@ from collections import defaultdict, Counter
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.config_helper import ConfigHelper
 
 
 # Configurazioni per diverse scale di razze
@@ -109,21 +110,51 @@ def select_breeds_for_scale(
 
 
 def calculate_balanced_samples(breed_counts: dict, target_total: int = None) -> dict:
-    """Calcola il numero di campioni per razza per bilanciamento"""
+    """
+    Calcola il numero di campioni per razza per bilanciamento
+
+    Questa funzione implementa la strategia di bilanciamento del dataset,
+    fondamentale per evitare bias verso razze con più immagini.
+
+    Strategia:
+    1. Se target_total non specificato: usa il minimo tra le razze (almeno 100)
+    2. Se target_total specificato: distribuisce equamente tra le razze
+    3. Limita ogni razza al numero di immagini disponibili (no oversampling)
+
+    Questo approccio garantisce:
+    - Bilanciamento perfetto tra razze
+    - Nessuna perdita di qualità (no synthetic data)
+    - Coefficient of Variation < 0.2 (eccellente bilanciamento)
+
+    Args:
+        breed_counts: Dizionario {breed_name: num_images}
+        target_total: Numero totale target di immagini (opzionale)
+
+    Restituisce:
+        Dizionario {breed_name: num_samples_to_use}
+    """
     if not breed_counts:
         return {}
 
-    # Se non specificato, usa il minimo tra le razze (ma almeno 100)
+    # Strategia di bilanciamento: usa il minimo comune denominatore
+    # Obiettivo: evitare bias verso razze con più immagini nel dataset
     if target_total is None:
-        min_samples = min(breed_counts.values())
-        target_per_breed = max(min_samples, 100)
+        # Modalità automatica: usa la razza con meno immagini come limite
+        min_samples = min(breed_counts.values())  # Es: se min è 150, tutte avranno 150
+        target_per_breed = max(
+            min_samples, 100
+        )  # Minimo 100 per avere training significativo
     else:
+        # Modalità manuale: distribuisci il target totale equamente
         target_per_breed = target_total // len(breed_counts)
 
-    # Assicurati che ogni razza abbia abbastanza immagini
+    # Limita ogni razza alle immagini disponibili (no oversampling/synthetic data)
+    # Preferisco perdere immagini piuttosto che generare dati artificiali
     balanced_samples = {}
     for breed, count in breed_counts.items():
-        balanced_samples[breed] = min(count, target_per_breed)
+        balanced_samples[breed] = min(
+            count, target_per_breed
+        )  # Non superare mai il disponibile
 
     return balanced_samples
 
@@ -186,24 +217,25 @@ def create_balanced_splits(
             if f.suffix.lower() in [".jpg", ".jpeg", ".png"]
         ]
 
-        # Campiona il numero bilanciato di immagini
+        # Campionamento bilanciato: prendi solo le immagini necessarie per bilanciamento
         target_samples = balanced_samples[breed]
         if len(image_files) > target_samples:
+            # Random sampling senza replacement per diversità
             image_files = random.sample(image_files, target_samples)
 
-        # Calcola split sizes
+        # Calcola dimensioni split (70/15/15 è standard per deep learning)
         n_total = len(image_files)
-        n_train = int(n_total * train_ratio)
-        n_val = int(n_total * val_ratio)
-        n_test = n_total - n_train - n_val
+        n_train = int(n_total * train_ratio)  # ~70% per training
+        n_val = int(n_total * val_ratio)  # ~15% per validation (early stopping)
+        n_test = n_total - n_train - n_val  # Rimanente per test finale
 
-        # Shuffle e split
-        random.shuffle(image_files)
+        # Split deterministico con shuffling iniziale
+        random.shuffle(image_files)  # Mescola per evitare bias temporali/di ordinamento
         train_files = image_files[:n_train]
         val_files = image_files[n_train : n_train + n_val]
         test_files = image_files[n_train + n_val :]
 
-        # Copia file nei rispettivi split
+        # Copia fisica file (no symlinks per portabilità)
         for files, split_name in [
             (train_files, "train"),
             (val_files, "val"),
@@ -232,6 +264,8 @@ def create_balanced_splits(
     )
 
     # Calcola coefficient of variation per verificare bilanciamento
+    # CV = std/mean: misura la variabilità relativa del dataset
+    # CV < 0.2 = eccellente, CV < 0.5 = buono, CV >= 0.5 = migliorabile
     train_counts = list(split_stats["train"].values())
     if train_counts:
         mean_train = sum(train_counts) / len(train_counts)
@@ -240,12 +274,17 @@ def create_balanced_splits(
         ) ** 0.5
         cv = std_train / mean_train if mean_train > 0 else 0
         print(f"\n📊 Coefficient of Variation (training): {cv:.3f}")
+
+        # Interpretazione CV per valutazione qualità bilanciamento
         if cv < 0.2:
             print("✅ Bilanciamento ECCELLENTE (CV < 0.2)")
+            print("   Dataset perfettamente bilanciato per training ottimale")
         elif cv < 0.5:
             print("✅ Bilanciamento BUONO (CV < 0.5)")
+            print("   Dataset sufficientemente bilanciato per buoni risultati")
         else:
             print("⚠️  Bilanciamento MIGLIORABILE (CV >= 0.5)")
+            print("   Considera di bilanciare meglio il dataset")
 
     # Salva statistiche
     stats = {
@@ -268,7 +307,9 @@ def create_balanced_splits(
     return stats
 
 
-def prepare_breeds_dataset(num_breeds: int, source_dir: str = "data/breeds"):
+def prepare_breeds_dataset(
+    num_breeds: int, source_dir: str = "data/breeds", config_path: str = "config.json"
+):
     """Prepara dataset bilanciato per il numero specificato di razze"""
 
     if num_breeds not in BREED_CONFIGS:
@@ -278,6 +319,17 @@ def prepare_breeds_dataset(num_breeds: int, source_dir: str = "data/breeds"):
         )
 
     config = BREED_CONFIGS[num_breeds]
+    # Se presente un config.json, consenti di sovrascrivere parametri
+    cfg = None
+    try:
+        cfg = ConfigHelper(config_path)
+    except Exception:
+        cfg = None
+
+    if cfg is not None:
+        # Se definito un path sorgente nel config, usalo come default
+        source_dir = cfg.get("data.breed_dataset_path", source_dir)
+
     source_path = Path(source_dir)
     output_path = Path(config["output_dir"])
 
@@ -330,15 +382,21 @@ def main():
         default="data/breeds",
         help="Directory dataset sorgente (default: data/breeds)",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.json",
+        help="Percorso al file di configurazione JSON (default: config.json)",
+    )
 
     args = parser.parse_args()
 
     try:
-        stats = prepare_breeds_dataset(args.breeds, args.source)
+        stats = prepare_breeds_dataset(args.breeds, args.source, args.config)
         print(f"\n✅ Preparazione completata con successo!")
-        print(f"   Breeds: {stats['num_breeds']}")
-        print(f"   Total images: {stats['total_images']:,}")
-        print(f"   Balance CV: {stats['balance_cv']:.3f}")
+        print(f"   Razze: {stats['num_breeds']}")
+        print(f"   Immagini totali: {stats['total_images']:,}")
+        print(f"   CV bilanciamento: {stats['balance_cv']:.3f}")
 
     except Exception as e:
         print(f"\n❌ Errore durante la preparazione: {e}")

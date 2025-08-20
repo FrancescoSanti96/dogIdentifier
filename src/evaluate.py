@@ -3,7 +3,7 @@
 Analisi matrice di confusione per capire chi viene confuso con chi.
 
 Uso:
-  python analyze_confusion.py \
+  python src/evaluate.py \
     --model outputs/top10/best_model.pth \
     --data data/top10_balanced \
     [--batch-size 32]
@@ -20,8 +20,9 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
-# Add parent directory to path
+# Aggiungi directory padre al path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.config_helper import ConfigHelper
 
 from utils.dataloader import create_dataloaders_from_splits
 from models.breed_classifier import create_breed_classifier
@@ -33,19 +34,39 @@ def analyze_confusion(
     batch_size: int = 32,
     outdir: str = "outputs/analysis",
 ):
-    """Analizza la matrice di confusione del modello.
+    """
+    Analizza la matrice di confusione del modello per identificare pattern di errori
+
+    Questa funzione è fondamentale per comprendere le performance del modello:
+    1. Carica modello e dataset di test
+    2. Genera predizioni su test set separato (no data leakage)
+    3. Calcola matrice di confusione e metriche per classe
+    4. Identifica errori più comuni e pattern di confusione
+    5. Focus specifico su Australian Shepherd (obiettivo progetto)
+    6. Genera visualizzazioni e report dettagliati
+
+    Output Analysis:
+    - Matrice di confusione normalizzata e assoluta
+    - Accuracy per classe con ranking
+    - Top 10 errori più comuni
+    - Analisi specifica Australian Shepherd
+    - Grafici salvati per presentazione
 
     Args:
         model_path: path al checkpoint (.pth)
         data_dir: directory con gli split (train/val/test)
         batch_size: batch size per il test loader
+        outdir: directory output per grafici e report
+
+    Returns:
+        Dict con risultati analisi (confusion matrix, accuracies, errori)
     """
     print("🔍 ANALISI MATRICE DI CONFUSIONE")
     print("=" * 50)
 
-    # Setup
+    # Configurazione
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    print(f"Dispositivo utilizzato: {device}")
 
     # Carica il modello salvato
     if not os.path.exists(model_path):
@@ -64,25 +85,30 @@ def analyze_confusion(
     print(f"   Razze: {breed_names}")
     print(f"   Best Val Acc: {checkpoint.get('best_val_acc', 'N/A'):.2f}%")
 
-    # Crea modello (rileva automaticamente architettura dal checkpoint)
+    # Auto-rilevamento architettura modello dal checkpoint
+    # Questo sistema intelligente rileva automaticamente se il modello usa
+    # transfer learning (ResNet18) o è una CNN from-scratch
     state_dict = checkpoint["model_state_dict"]
     backbone_keys = [
         k
         for k in state_dict.keys()
-        if k.startswith("layer1.") or k.startswith("conv1.")
+        if k.startswith("layer1.")
+        or k.startswith("conv1.")  # Firme caratteristiche ResNet18
     ]
+
     if len(backbone_keys) > 0:
-        # ResNet18 backbone
+        # Transfer Learning: ResNet18 backbone rilevato
         print("🧠 Rilevato backbone ResNet18 dal checkpoint")
         model = create_breed_classifier(
             model_type="simple",  # ignorato quando si specifica il backbone
             num_classes=num_classes,
             dropout_rate=0.4,
             pretrained_backbone="resnet18",
-            freeze_backbone=False,
+            freeze_backbone=False,  # Per valutazione, tutti i parametri attivi
         )
     else:
-        # Simple CNN
+        # From Scratch: CNN personalizzata
+        print("🧠 Rilevata CNN from-scratch dal checkpoint")
         model = create_breed_classifier(
             model_type="simple", num_classes=num_classes, dropout_rate=0.3
         )
@@ -97,7 +123,7 @@ def analyze_confusion(
         batch_size=batch_size,
         num_workers=2,
         image_size=(224, 224),
-        augmentation_config={},  # No augmentation per test
+        augmentation_config={},  # Nessuna augmentation per test
     )
 
     # Se il checkpoint non contiene i nomi delle classi, recuperarli dal dataset
@@ -112,24 +138,30 @@ def analyze_confusion(
 
     print(f"📁 Test set: {len(test_loader.dataset)} samples")
 
-    # Predizioni
+    # Fase di Predizione - valutazione completa su test set (dati mai visti)
     print("\n🔮 Generando predizioni...")
-    all_preds = []
-    all_labels = []
+    all_preds = []  # Predizioni del modello (indici classi)
+    all_labels = []  # Ground truth labels (indici classi vere)
 
+    # Modalità inference: no gradient computation, dropout off, batchnorm frozen
     with torch.no_grad():
-        for data, target in tqdm(test_loader, desc="Testing"):
+        for data, target in tqdm(test_loader, desc="Test in corso"):
             data, target = data.to(device), target.to(device)
-            output = model(data)
-            _, predicted = output.max(1)
+            output = model(
+                data
+            )  # Forward pass: logits di shape (batch_size, num_classes)
+            _, predicted = output.max(1)  # Classe con probabilità massima
 
+            # Accumula predizioni per analisi globale
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(target.cpu().numpy())
 
+    # Converti in numpy array per analisi numerica
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
-    # Matrice di confusione
+    # Confusion Matrix - cuore dell'analisi: confronta predizioni vs verità
+    # cm[i,j] = numero di campioni di classe i predetti come classe j
     cm = confusion_matrix(all_labels, all_preds)
 
     print(f"\n📊 MATRICE DI CONFUSIONE:")
@@ -148,8 +180,8 @@ def analyze_confusion(
             print(f"{cm[i,j]:8d}", end="")
         print()
 
-    # Calcola accuracy per classe
-    print(f"\n📋 ACCURACY PER CLASSE:")
+    # Calcola accuratezza per classe
+    print(f"\n📋 ACCURATEZZA PER CLASSE:")
     print("-" * 40)
 
     class_accuracies = []
@@ -161,36 +193,42 @@ def analyze_confusion(
         else:
             print(f"{breed:25}: N/A (no samples)")
 
-    # Ordina per accuracy
+    # Ordina per accuratezza
     class_accuracies.sort(key=lambda x: x[1], reverse=True)
 
-    print(f"\n🏆 RANKING PER ACCURACY:")
+    print(f"\n🏆 RANKING PER ACCURATEZZA:")
     print("-" * 40)
     for i, (breed, acc, correct, total) in enumerate(class_accuracies):
         medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "  "
         star = " ⭐" if "Australian" in breed else ""
         print(f"{medal} {breed:25}: {acc:5.1f}% ({correct}/{total}){star}")
 
-    # Analisi errori più comuni
+    # Analisi Errori - identifica pattern di confusione tra razze simili
     print(f"\n🚨 ERRORI PIÙ COMUNI:")
     print("-" * 40)
 
+    # Estrai tutti gli errori dalla confusion matrix (off-diagonal elements)
     errors = []
-    for i in range(num_classes):
-        for j in range(num_classes):
-            if i != j and cm[i, j] > 0:
+    for i in range(num_classes):  # Classe vera (righe)
+        for j in range(num_classes):  # Classe predetta (colonne)
+            if i != j and cm[i, j] > 0:  # Solo misclassificazioni (non diagonal)
+                # Formato: (razza_vera, razza_predetta, num_errori, totale_campioni_razza_vera)
                 errors.append((breed_names[i], breed_names[j], cm[i, j], cm[i].sum()))
 
-    # Ordina per numero di errori
+    # Ordina per frequenza assoluta degli errori (identificare confusion patterns)
     errors.sort(key=lambda x: x[2], reverse=True)
 
-    for true_breed, pred_breed, count, total in errors[:10]:  # Top 10 errori
-        percentage = count / total * 100
+    # Top 10 errori più frequenti - insights per migliorare il modello
+    for true_breed, pred_breed, count, total in errors[:10]:
+        percentage = (
+            count / total * 100
+        )  # Percentuale di campioni di questa razza sbagliati così
         print(
             f"{true_breed:20} → {pred_breed:20}: {count:2d} volte ({percentage:4.1f}%)"
         )
 
-    # Focus su German_shepherd
+    # Focus Speciale su German_shepherd - il cane dell'utente!
+    # Analisi dettagliata: come viene riconosciuto il mio cane specifico
     print(f"\n🔍 FOCUS SU GERMAN_SHEPHERD:")
     print("-" * 40)
 
@@ -199,29 +237,37 @@ def analyze_confusion(
         german_idx = breed_names.index("German_shepherd")
         print(f"German_shepherd è l'indice {german_idx}")
 
+        # Analisi distribuzione predizioni per German_shepherd
         print(f"\nCome viene classificato German_shepherd:")
-        total_german = cm[german_idx].sum()
+        total_german = cm[german_idx].sum()  # Totale campioni German_shepherd nel test
         for j, pred_breed in enumerate(breed_names):
-            count = cm[german_idx, j]
+            count = cm[german_idx, j]  # Quante volte German_shepherd → pred_breed
             if count > 0:
                 percentage = count / total_german * 100
-                correct = "✅" if j == german_idx else "❌"
+                correct = (
+                    "✅" if j == german_idx else "❌"
+                )  # Correct vs wrong prediction
                 print(
                     f"  {correct} {pred_breed:20}: {count:2d}/{total_german} ({percentage:5.1f}%)"
                 )
 
+        # Analisi inversa: quali razze vengono scambiate per German_shepherd (false positives)
         print(f"\nChi viene classificato come German_shepherd:")
         for i, true_breed in enumerate(breed_names):
-            count = cm[i, german_idx]
+            count = cm[
+                i, german_idx
+            ]  # Campioni di razza i predetti come German_shepherd
             if count > 0:
-                total_true = cm[i].sum()
+                total_true = cm[i].sum()  # Totale campioni di questa razza vera
                 percentage = count / total_true * 100
-                correct = "✅" if i == german_idx else "❌"
+                correct = (
+                    "✅" if i == german_idx else "❌"
+                )  # True positive vs false positive
                 print(
                     f"  {correct} {true_breed:20}: {count:2d}/{total_true} ({percentage:5.1f}%)"
                 )
 
-    # Focus su Australian_Shepherd
+    # Focus Speciale su Australian_Shepherd - seconda razza importante
     print(f"\n⭐ FOCUS SU AUSTRALIAN_SHEPHERD:")
     print("-" * 40)
 
@@ -230,10 +276,11 @@ def analyze_confusion(
         australian_idx = breed_names.index("Australian_Shepherd_Dog")
         print(f"Australian_Shepherd_Dog è l'indice {australian_idx}")
 
+        # Analisi performance su Australian Shepherd (possibile confronto con German Shepherd)
         print(f"\nCome viene classificato Australian_Shepherd:")
         total_australian = cm[australian_idx].sum()
         for j, pred_breed in enumerate(breed_names):
-            count = cm[australian_idx, j]
+            count = cm[australian_idx, j]  # Australian_shepherd → pred_breed
             if count > 0:
                 percentage = count / total_australian * 100
                 correct = "✅" if j == australian_idx else "❌"
@@ -275,7 +322,7 @@ def analyze_confusion(
     plt.ylabel("Vero")
     plt.xlabel("Predetto")
 
-    # Accuracy per classe
+    # Accuratezza per classe
     plt.subplot(2, 2, 3)
     breeds = [acc[0][:15] for acc in class_accuracies]
     accuracies = [acc[1] for acc in class_accuracies]
@@ -324,8 +371,8 @@ def analyze_confusion(
 
     plt.show()
 
-    # Classification report
-    print(f"\n📋 CLASSIFICATION REPORT:")
+    # Report di classificazione
+    print(f"\n📋 REPORT DI CLASSIFICAZIONE:")
     print("-" * 50)
     print(
         classification_report(all_labels, all_preds, target_names=breed_names, digits=3)
@@ -334,10 +381,10 @@ def analyze_confusion(
     # Salva report
     report_path = os.path.join(outdir, "confusion_analysis.txt")
     with open(report_path, "w") as f:
-        f.write("CONFUSION MATRIX ANALYSIS\n")
+        f.write("ANALISI MATRICE DI CONFUSIONE\n")
         f.write("=" * 50 + "\n\n")
 
-        f.write("ACCURACY PER CLASSE:\n")
+        f.write("ACCURATEZZA PER CLASSE:\n")
         for breed, acc, correct, total in class_accuracies:
             f.write(f"{breed:25}: {acc:5.1f}% ({correct}/{total})\n")
 
@@ -369,21 +416,43 @@ def analyze_confusion(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Analyze confusion matrix for a trained model"
-    )
-    parser.add_argument("--model", required=True, help="Path to model checkpoint .pth")
-    parser.add_argument(
-        "--data", required=True, help="Path to dataset splits directory"
+        description="Analizza la matrice di confusione per un modello addestrato"
     )
     parser.add_argument(
-        "--batch-size", type=int, default=32, help="Batch size for test"
+        "--model", required=True, help="Percorso al checkpoint del modello .pth"
+    )
+    parser.add_argument(
+        "--data", required=True, help="Percorso alla directory degli split del dataset"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=32, help="Dimensione batch per il test"
     )
     parser.add_argument(
         "--outdir",
         default="outputs/analysis",
         help="Directory di output per grafici e report",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.json",
+        help="Percorso al file di configurazione JSON (default: config.json)",
+    )
     args = parser.parse_args()
+
+    # Se presente config, consenti override di data_dir e batch size
+    try:
+        cfg = ConfigHelper(args.config)
+        default_data_dir = cfg.get("paths.default_eval_data_dir") or cfg.get(
+            "data.balanced_splits_dir"
+        )
+        if default_data_dir and (args.data is None or args.data == ""):
+            args.data = default_data_dir
+        batch_override = cfg.get("data.batch_size")
+        if batch_override:
+            args.batch_size = int(batch_override)
+    except Exception:
+        pass
 
     results = analyze_confusion(
         model_path=args.model,
