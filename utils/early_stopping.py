@@ -32,30 +32,32 @@ class EarlyStopping:
         Returns:
             bool: True se il training deve essere fermato, False altrimenti
         """
-        # Convertiamo loss in score (più alto = meglio)
+        # Convertiamo loss in score per logica "più alto = migliore"
+        # Loss: minore è meglio → Score: maggiore è meglio (-val_loss)
         score = -val_loss
 
-        # Prima epoca: inizializza best score
+        # Prima epoca: inizializzazione senza confronti
         if self.best_score is None:
             self.best_score = score
             self.val_loss_min = val_loss
-            return False
+            return False  # Mai fermare alla prima epoca
 
-        # Controlla se c'è miglioramento significativo
+        # LOGICA CORE: controlla miglioramento vs patience
+        # Se score attuale < best_score + delta → NO miglioramento significativo
         if score < self.best_score + self.delta:
-            # Nessun miglioramento: incrementa counter
+            # Patience Logic: incrementa contatore epoche senza progresso
             self.counter += 1
             if self.verbose:
                 print(f"EarlyStopping counter: {self.counter} out of {self.patience}")
 
-            # Se raggiungiamo patience: ferma training
+            # Triggering: se raggiungiamo patience limit → STOP TRAINING
             if self.counter >= self.patience:
                 self.early_stop = True
-                return True
+                return True  # Segnala training loop di fermarsi
         else:
-            # Miglioramento trovato: reset counter e aggiorna best
-            self.best_score = score
-            self.val_loss_min = val_loss
-            self.counter = 0
+            # IMPROVEMENT DETECTED: reset tutto e continua training
+            self.best_score = score  # Aggiorna miglior score
+            self.val_loss_min = val_loss  # Aggiorna miglior validation loss
+            self.counter = 0  # Reset patience counter
 
         return False

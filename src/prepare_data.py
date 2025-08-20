@@ -137,16 +137,24 @@ def calculate_balanced_samples(breed_counts: dict, target_total: int = None) -> 
         return {}
 
     # Strategia di bilanciamento: usa il minimo comune denominatore
+    # Obiettivo: evitare bias verso razze con più immagini nel dataset
     if target_total is None:
-        min_samples = min(breed_counts.values())
-        target_per_breed = max(min_samples, 100)  # Minimo 100 per razza
+        # Modalità automatica: usa la razza con meno immagini come limite
+        min_samples = min(breed_counts.values())  # Es: se min è 150, tutte avranno 150
+        target_per_breed = max(
+            min_samples, 100
+        )  # Minimo 100 per avere training significativo
     else:
+        # Modalità manuale: distribuisci il target totale equamente
         target_per_breed = target_total // len(breed_counts)
 
-    # Limita ogni razza alle immagini disponibili (no oversampling)
+    # Limita ogni razza alle immagini disponibili (no oversampling/synthetic data)
+    # Preferisco perdere immagini piuttosto che generare dati artificiali
     balanced_samples = {}
     for breed, count in breed_counts.items():
-        balanced_samples[breed] = min(count, target_per_breed)
+        balanced_samples[breed] = min(
+            count, target_per_breed
+        )  # Non superare mai il disponibile
 
     return balanced_samples
 
@@ -209,24 +217,25 @@ def create_balanced_splits(
             if f.suffix.lower() in [".jpg", ".jpeg", ".png"]
         ]
 
-        # Campiona il numero bilanciato di immagini
+        # Campionamento bilanciato: prendi solo le immagini necessarie per bilanciamento
         target_samples = balanced_samples[breed]
         if len(image_files) > target_samples:
+            # Random sampling senza replacement per diversità
             image_files = random.sample(image_files, target_samples)
 
-        # Calcola dimensioni split
+        # Calcola dimensioni split (70/15/15 è standard per deep learning)
         n_total = len(image_files)
-        n_train = int(n_total * train_ratio)
-        n_val = int(n_total * val_ratio)
-        n_test = n_total - n_train - n_val
+        n_train = int(n_total * train_ratio)  # ~70% per training
+        n_val = int(n_total * val_ratio)  # ~15% per validation (early stopping)
+        n_test = n_total - n_train - n_val  # Rimanente per test finale
 
-        # Mescola e dividi
-        random.shuffle(image_files)
+        # Split deterministico con shuffling iniziale
+        random.shuffle(image_files)  # Mescola per evitare bias temporali/di ordinamento
         train_files = image_files[:n_train]
         val_files = image_files[n_train : n_train + n_val]
         test_files = image_files[n_train + n_val :]
 
-        # Copia file nei rispettivi split
+        # Copia fisica file (no symlinks per portabilità)
         for files, split_name in [
             (train_files, "train"),
             (val_files, "val"),

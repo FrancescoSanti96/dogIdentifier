@@ -19,14 +19,21 @@ def set_deterministic(seed: int = 42) -> None:
     Args:
         seed: Seed per tutti i generatori random (default: 42)
     """
-    os.environ["PYTHONHASHSEED"] = str(seed)  # Operazioni di hash
-    random.seed(seed)  # Random Python standard
-    np.random.seed(seed)  # Random NumPy
-    torch.manual_seed(seed)  # PyTorch CPU
+    # STEP 1: Seed tutti i generatori random per consistency end-to-end
+    os.environ["PYTHONHASHSEED"] = str(seed)  # Hash operations (dict ordering, etc.)
+    random.seed(seed)  # Python built-in random module
+    np.random.seed(seed)  # NumPy random number generator
+    torch.manual_seed(seed)  # PyTorch CPU tensor operations
 
+    # STEP 2: GPU determinism (se disponibile)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)  # PyTorch GPU (tutti i device)
+        torch.cuda.manual_seed_all(seed)  # Tutti i GPU device CUDA
 
-    # cuDNN: determinismo vs performance
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    # STEP 3: cuDNN Backend Control - CRITICO per CNN deep learning
+    # Trade-off importante: DETERMINISMO vs PERFORMANCE
+    torch.backends.cudnn.deterministic = (
+        True  # Forza algoritmi deterministici (stesso risultato sempre)
+    )
+    torch.backends.cudnn.benchmark = (
+        False  # Disabilita auto-optimization (varia tra run)
+    )

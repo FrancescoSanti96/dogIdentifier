@@ -606,25 +606,35 @@ def create_dataloaders_from_splits(
     if allowed_breeds:
         print(f"🔢 Imposizione ordine razze: {allowed_breeds}")
 
-    # Crea dataloader
+    # Crea DataLoaders - cuore del sistema di caricamento dati
     if use_weighted_sampler:
-        # Calcola pesi campioni bilanciati per classe per il set di training
+        # Weighted Sampling per bilanciare classi sbilanciate durante training
+        # Obiettivo: ogni classe ha stessa probabilità di essere campionata in ogni epoca
         import numpy as _np
 
+        # Calcola distribuzione classi nel training set
         labels_np = _np.array(train_dataset.labels)
         class_counts = _np.bincount(
             labels_np, minlength=len(train_dataset.breed_names)
         ).astype(_np.float32)
-        class_counts[class_counts == 0] = 1.0
-        class_weights = class_counts.max() / class_counts
-        sample_weights = [class_weights[label] for label in labels_np]
+        class_counts[class_counts == 0] = 1.0  # Evita divisione per zero
+
+        # Peso inversamente proporzionale alla frequenza: classi rare pesano di più
+        class_weights = (
+            class_counts.max() / class_counts
+        )  # [max_count/count_i for each class]
+        sample_weights = [
+            class_weights[label] for label in labels_np
+        ]  # Peso per ogni campione
+
+        # WeightedRandomSampler: campiona con probabilità proporzionale ai pesi
         sampler = WeightedRandomSampler(
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
-            shuffle=False,
+            shuffle=False,  # Sampler gestisce l'ordine
             sampler=sampler,
             num_workers=num_workers,
             pin_memory=True,

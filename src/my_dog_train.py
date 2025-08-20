@@ -53,12 +53,13 @@ def my_dog_train():
     writer = SummaryWriter(tb_log_dir)
     print(f"📊 TensorBoard logging: {tb_log_dir}")
 
-    # Configurazione
+    # Configurazione Binaria - ottimizzata per riconoscimento cane personale
+    # Binary classification: "È il mio cane?" vs "Non è il mio cane"
     num_epochs = 20
-    batch_size = 16  # Più piccolo per dataset personale
-    learning_rate = 0.0005
-    patience = 5
-    dropout_rate = 0.3  # Meno aggressivo per binario
+    batch_size = 16  # Più piccolo per dataset personale (meno immagini disponibili)
+    learning_rate = 0.0005  # Più conservativo per small dataset
+    patience = 5  # Early stopping più veloce
+    dropout_rate = 0.3  # Meno aggressivo per binary (solo 2 classi vs 120+)
 
     print(f"\n⚙️ CONFIGURAZIONE BINARIA:")
     print(f"   Epochs: {num_epochs}")
@@ -67,14 +68,15 @@ def my_dog_train():
     print(f"   Patience: {patience}")
     print(f"   Dropout: {dropout_rate}")
 
-    # Transforms
+    # Data Augmentation più conservativa per dataset piccolo personalizzato
+    # Obiettivo: aumentare varietà senza perdere caratteristiche distintive del mio cane
     train_transform, val_transform = get_transforms(
         image_size=(224, 224),
         augmentation_config={
-            "horizontal_flip": True,
-            "rotation": 10,  # Meno aggressivo
-            "brightness_contrast": [0.9, 1.1],
-            "color_jitter": [0.05, 0.05, 0.0, 0.0],
+            "horizontal_flip": True,  # Flip orizzontale: naturale
+            "rotation": 10,  # Rotazione limitata: mantieni orientamento cane
+            "brightness_contrast": [0.9, 1.1],  # Correzioni luminosità lievi
+            "color_jitter": [0.05, 0.05, 0.0, 0.0],  # Colori stabili
         },
     )
 
@@ -119,20 +121,25 @@ def my_dog_train():
     print(f"   Validation: {len(val_dataset)} samples")
     print(f"   Test: {len(test_dataset)} samples")
 
-    # Modello binario (2 classi) con opzione transfer learning via env
-    use_tl = bool(int(os.getenv("USE_TL", "0")))
+    # Modello Binario: problema di classificazione speciale
+    # Obiettivo: distinguere il MIO cane da tutti gli altri cani
+    use_tl = bool(
+        int(os.getenv("USE_TL", "0"))
+    )  # Transfer Learning opzionale via env var
     if use_tl:
+        # Transfer Learning: veloce, efficiente per dataset piccolo
         print("\n🧠 Utilizzo transfer learning backbone: ResNet18 (congelato)")
         model = create_breed_classifier(
             model_type="simple",
-            num_classes=2,
+            num_classes=2,  # Binary: "mio cane" vs "non mio cane"
             dropout_rate=dropout_rate,
             pretrained_backbone="resnet18",
             freeze_backbone=True,
         )
     else:
+        # From Scratch: architettura semplice per binary task
         model = create_breed_classifier(
-            model_type="simple",
+            model_type="simple",  # 3.3M parametri, sufficiente per binary
             num_classes=2,
             dropout_rate=dropout_rate,
         )
@@ -143,11 +150,11 @@ def my_dog_train():
     print(f"   Parametri: {total_params:,}")
     print(f"   Classi: 2 (il mio cane vs altri)")
 
-    # Setup training
-    criterion = nn.CrossEntropyLoss()
+    # Setup Training per Binary Classification
+    criterion = nn.CrossEntropyLoss()  # Standard anche per binary (2 classi)
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=3
+        optimizer, mode="min", factor=0.5, patience=3  # Riduce LR più aggressivamente
     )
     early_stopping = EarlyStopping(patience=patience)
 

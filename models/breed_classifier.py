@@ -261,33 +261,43 @@ def create_breed_classifier(
         Modello inizializzato
     """
     if pretrained_backbone:
-        # Percorso transfer learning usando backbone torchvision (es. 'resnet18')
+        # Transfer Learning Path: utilizza modello pre-addestrato su ImageNet
+        # Vantaggi: convergenza più veloce, meno dati richiesti, feature generiche già apprese
         if pretrained_backbone.lower() == "resnet18":
+            # Carica ResNet18 con pesi ImageNet (11M parametri backbone)
             backbone = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-            in_features = backbone.fc.in_features
-            # Sostituisci classificatore finale
+            in_features = backbone.fc.in_features  # 512 feature ResNet18
+
+            # Sostituisci classificatore finale: da 1000 classi ImageNet → num_classes razze
             backbone.fc = nn.Sequential(
-                nn.Dropout(p=dropout_rate),
-                nn.Linear(in_features, num_classes),
+                nn.Dropout(p=dropout_rate),  # Regolarizzazione finale
+                nn.Linear(in_features, num_classes),  # 512 → num_classes
             )
             model = backbone
-            # Opzionalmente congela tutto il backbone eccetto la testa finale
+
+            # Feature Extraction vs Fine-tuning
             if freeze_backbone:
+                # Freeze backbone: solo classificatore finale trainable (~61K parametri)
                 for name, param in model.named_parameters():
-                    # mantieni testa trainable
-                    if not name.startswith("fc."):
+                    if not name.startswith(
+                        "fc."
+                    ):  # Mantieni solo testa finale trainable
                         param.requires_grad = False
         else:
             raise ValueError(
                 f"Backbone pre-addestrato non supportato: {pretrained_backbone}"
             )
     elif model_type == "full":
+        # From Scratch Path - Full: architettura CNN personalizzata completa
+        # 134M parametri, VGG-like, tutti i layer trainable da zero
         model = BreedClassifier(
             num_classes=num_classes,
             dropout_rate=dropout_rate,
             use_batch_norm=use_batch_norm,
         )
     elif model_type == "simple":
+        # From Scratch Path - Simple: architettura CNN semplificata
+        # 3.3M parametri, per test rapidi e confronti
         model = SimpleBreedClassifier(
             num_classes=num_classes,
             dropout_rate=dropout_rate,

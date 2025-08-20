@@ -138,24 +138,30 @@ def analyze_confusion(
 
     print(f"📁 Test set: {len(test_loader.dataset)} samples")
 
-    # Predizioni
+    # Fase di Predizione - valutazione completa su test set (dati mai visti)
     print("\n🔮 Generando predizioni...")
-    all_preds = []
-    all_labels = []
+    all_preds = []  # Predizioni del modello (indici classi)
+    all_labels = []  # Ground truth labels (indici classi vere)
 
+    # Modalità inference: no gradient computation, dropout off, batchnorm frozen
     with torch.no_grad():
         for data, target in tqdm(test_loader, desc="Test in corso"):
             data, target = data.to(device), target.to(device)
-            output = model(data)
-            _, predicted = output.max(1)
+            output = model(
+                data
+            )  # Forward pass: logits di shape (batch_size, num_classes)
+            _, predicted = output.max(1)  # Classe con probabilità massima
 
+            # Accumula predizioni per analisi globale
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(target.cpu().numpy())
 
+    # Converti in numpy array per analisi numerica
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
-    # Matrice di confusione
+    # Confusion Matrix - cuore dell'analisi: confronta predizioni vs verità
+    # cm[i,j] = numero di campioni di classe i predetti come classe j
     cm = confusion_matrix(all_labels, all_preds)
 
     print(f"\n📊 MATRICE DI CONFUSIONE:")
@@ -197,26 +203,32 @@ def analyze_confusion(
         star = " ⭐" if "Australian" in breed else ""
         print(f"{medal} {breed:25}: {acc:5.1f}% ({correct}/{total}){star}")
 
-    # Analisi errori più comuni
+    # Analisi Errori - identifica pattern di confusione tra razze simili
     print(f"\n🚨 ERRORI PIÙ COMUNI:")
     print("-" * 40)
 
+    # Estrai tutti gli errori dalla confusion matrix (off-diagonal elements)
     errors = []
-    for i in range(num_classes):
-        for j in range(num_classes):
-            if i != j and cm[i, j] > 0:
+    for i in range(num_classes):  # Classe vera (righe)
+        for j in range(num_classes):  # Classe predetta (colonne)
+            if i != j and cm[i, j] > 0:  # Solo misclassificazioni (non diagonal)
+                # Formato: (razza_vera, razza_predetta, num_errori, totale_campioni_razza_vera)
                 errors.append((breed_names[i], breed_names[j], cm[i, j], cm[i].sum()))
 
-    # Ordina per numero di errori
+    # Ordina per frequenza assoluta degli errori (identificare confusion patterns)
     errors.sort(key=lambda x: x[2], reverse=True)
 
-    for true_breed, pred_breed, count, total in errors[:10]:  # Top 10 errori
-        percentage = count / total * 100
+    # Top 10 errori più frequenti - insights per migliorare il modello
+    for true_breed, pred_breed, count, total in errors[:10]:
+        percentage = (
+            count / total * 100
+        )  # Percentuale di campioni di questa razza sbagliati così
         print(
             f"{true_breed:20} → {pred_breed:20}: {count:2d} volte ({percentage:4.1f}%)"
         )
 
-    # Focus su German_shepherd
+    # Focus Speciale su German_shepherd - il cane dell'utente!
+    # Analisi dettagliata: come viene riconosciuto il mio cane specifico
     print(f"\n🔍 FOCUS SU GERMAN_SHEPHERD:")
     print("-" * 40)
 
@@ -225,29 +237,37 @@ def analyze_confusion(
         german_idx = breed_names.index("German_shepherd")
         print(f"German_shepherd è l'indice {german_idx}")
 
+        # Analisi distribuzione predizioni per German_shepherd
         print(f"\nCome viene classificato German_shepherd:")
-        total_german = cm[german_idx].sum()
+        total_german = cm[german_idx].sum()  # Totale campioni German_shepherd nel test
         for j, pred_breed in enumerate(breed_names):
-            count = cm[german_idx, j]
+            count = cm[german_idx, j]  # Quante volte German_shepherd → pred_breed
             if count > 0:
                 percentage = count / total_german * 100
-                correct = "✅" if j == german_idx else "❌"
+                correct = (
+                    "✅" if j == german_idx else "❌"
+                )  # Correct vs wrong prediction
                 print(
                     f"  {correct} {pred_breed:20}: {count:2d}/{total_german} ({percentage:5.1f}%)"
                 )
 
+        # Analisi inversa: quali razze vengono scambiate per German_shepherd (false positives)
         print(f"\nChi viene classificato come German_shepherd:")
         for i, true_breed in enumerate(breed_names):
-            count = cm[i, german_idx]
+            count = cm[
+                i, german_idx
+            ]  # Campioni di razza i predetti come German_shepherd
             if count > 0:
-                total_true = cm[i].sum()
+                total_true = cm[i].sum()  # Totale campioni di questa razza vera
                 percentage = count / total_true * 100
-                correct = "✅" if i == german_idx else "❌"
+                correct = (
+                    "✅" if i == german_idx else "❌"
+                )  # True positive vs false positive
                 print(
                     f"  {correct} {true_breed:20}: {count:2d}/{total_true} ({percentage:5.1f}%)"
                 )
 
-    # Focus su Australian_Shepherd
+    # Focus Speciale su Australian_Shepherd - seconda razza importante
     print(f"\n⭐ FOCUS SU AUSTRALIAN_SHEPHERD:")
     print("-" * 40)
 
@@ -256,10 +276,11 @@ def analyze_confusion(
         australian_idx = breed_names.index("Australian_Shepherd_Dog")
         print(f"Australian_Shepherd_Dog è l'indice {australian_idx}")
 
+        # Analisi performance su Australian Shepherd (possibile confronto con German Shepherd)
         print(f"\nCome viene classificato Australian_Shepherd:")
         total_australian = cm[australian_idx].sum()
         for j, pred_breed in enumerate(breed_names):
-            count = cm[australian_idx, j]
+            count = cm[australian_idx, j]  # Australian_shepherd → pred_breed
             if count > 0:
                 percentage = count / total_australian * 100
                 correct = "✅" if j == australian_idx else "❌"

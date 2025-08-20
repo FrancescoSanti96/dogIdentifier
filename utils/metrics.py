@@ -32,28 +32,30 @@ def calculate_metrics(
     """
     metrics = {}
 
-    # Metriche base
+    # Accuracy: percentuale predizioni corrette (semplice ma può ingannare su dataset sbilanciati)
     metrics["accuracy"] = accuracy_score(y_true, y_pred)
 
-    # Precision, Recall, F1
+    # Metriche Avanzate: più informative per classificazione multi-class sbilanciata
+    # Weighted average: considera la frequenza di ogni classe nel calcolo finale
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, y_pred, average="weighted"
     )
-    metrics["precision"] = precision
-    metrics["recall"] = recall
-    metrics["f1_score"] = f1
+    metrics["precision"] = precision  # Delle predizioni positive, quante sono corrette?
+    metrics["recall"] = recall  # Dei campioni positivi veri, quanti sono trovati?
+    metrics["f1_score"] = f1  # Media armonica precision-recall (bilanciato)
 
-    # ROC-AUC se sono disponibili le probabilità
+    # ROC-AUC: Area Under ROC Curve (discriminazione tra classi)
+    # Migliore metrica per valutare qualità probabilità predette
     if y_prob is not None:
         try:
             if len(y_prob.shape) == 1:
-                # Classificazione binaria
+                # Binary classification: una sola probabilità per classe positiva
                 metrics["roc_auc"] = roc_auc_score(y_true, y_prob)
             else:
-                # Classificazione multi-class
+                # Multi-class: One-vs-Rest approach per ogni classe
                 metrics["roc_auc"] = roc_auc_score(y_true, y_prob, multi_class="ovr")
         except ValueError:
-            metrics["roc_auc"] = 0.0
+            metrics["roc_auc"] = 0.0  # Fallback se ROC non calcolabile
 
     return metrics
 

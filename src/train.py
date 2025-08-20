@@ -317,14 +317,17 @@ def train_breeds(
     model = model.to(device)
 
     # Training setup - Configurazione ottimizzata per deep learning
-    # Loss function con label smoothing per evitare overconfidence
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  # Smoothing = 10%
+    # Loss function con label smoothing per evitare overconfidence sui dati training
+    criterion = nn.CrossEntropyLoss(
+        label_smoothing=0.1
+    )  # Smoothing = 10% previene overfitting
 
-    # Optimizer AdamW: versione migliorata di Adam con weight decay corretto
+    # Optimizer AdamW: versione migliorata di Adam con decoupled weight decay
+    # AdamW applica weight decay direttamente sui pesi, non sui gradienti (più efficace)
     optimizer = optim.AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=weight_decay,  # L2 regularization
+        weight_decay=weight_decay,  # L2 regularization per prevenire overfitting
     )
 
     # Learning rate scheduler: riduce LR quando validation loss plateau
@@ -362,33 +365,36 @@ def train_breeds(
     best_val_acc = 0.0
     best_epoch = 0
 
-    # Loop di training
+    # Loop di training principale - cuore dell'addestramento
     for epoch in range(num_epochs):
         print(f"\n📅 Epoca {epoch+1}/{num_epochs}")
 
-        # Fase di training
-        model.train()
+        # Fase di training - modello in modalità allenamento (dropout attivo, batchnorm updating)
+        model.train()  # Abilita dropout e aggiornamento BatchNorm statistics
         running_loss = 0.0
         correct = 0
         total = 0
 
         train_bar = tqdm(train_loader, desc=f"Train {epoch+1}")
         for batch_idx, (data, target) in enumerate(train_bar):
+            # Sposta batch su GPU/CPU
             data, target = data.to(device), target.to(device)
 
-            optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
-            loss.backward()
+            # Step standard training: forward → loss → backward → optimize
+            optimizer.zero_grad()  # Reset gradienti batch precedente
+            output = model(data)  # Forward pass: predizioni del modello
+            loss = criterion(output, target)  # Calcola CrossEntropy loss
+            loss.backward()  # Backward pass: calcola gradienti
 
-            # Gradient clipping per stabilità training (previene exploding gradients)
+            # Gradient clipping per stabilità training (previene exploding gradients in CNN profonde)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            optimizer.step()  # Aggiorna pesi del modello
 
+            # Statistiche batch per monitoring
             running_loss += loss.item()
-            _, predicted = output.max(1)
+            _, predicted = output.max(1)  # Classe con probabilità più alta
             total += target.size(0)
-            correct += predicted.eq(target).sum().item()
+            correct += predicted.eq(target).sum().item()  # Conta predizioni corrette
 
             train_bar.set_postfix(
                 {
@@ -400,26 +406,27 @@ def train_breeds(
         train_acc = 100.0 * correct / total
         avg_train_loss = running_loss / len(train_loader)
 
-        # Fase di validazione
-        model.eval()
+        # Fase di validazione - valuta performance su dati mai visti durante training
+        model.eval()  # Disabilita dropout e blocca BatchNorm (modalità inference)
         val_loss = 0.0
         val_correct = 0
         val_total = 0
         val_top5_correct = 0
 
-        with torch.no_grad():
+        with torch.no_grad():  # Disabilita calcolo gradienti (più veloce + meno memoria)
             val_bar = tqdm(val_loader, desc=f"Val {epoch+1}")
             for data, target in val_bar:
                 data, target = data.to(device), target.to(device)
-                output = model(data)
+                output = model(data)  # Forward pass senza gradienti
                 loss = criterion(output, target)
 
+                # Accumula statistiche validazione (no aggiornamento pesi!)
                 val_loss += loss.item()
-                _, predicted = output.max(1)
+                _, predicted = output.max(1)  # Predizione classe più probabile
                 val_total += target.size(0)
                 val_correct += predicted.eq(target).sum().item()
 
-                # Accuratezza Top-5 (se applicabile)
+                # Accuratezza Top-5: utile per classificazione con molte classi simili
                 if num_classes >= 5:
                     top1, top5 = topk_accuracy(output, target, topk=(1, 5))
                     val_top5_correct += (top5 * target.size(0)) / 100
@@ -435,20 +442,21 @@ def train_breeds(
         avg_val_loss = val_loss / len(val_loader)
         val_top5_acc = 100.0 * val_top5_correct / val_total if num_classes >= 5 else 0
 
-        # Scheduling learning rate
-        scheduler.step(avg_val_loss)
+        # Learning Rate Scheduling - riduce LR quando validation loss smette di migliorare
+        scheduler.step(avg_val_loss)  # ReduceLROnPlateau monitora val_loss
         current_lr = optimizer.param_groups[0]["lr"]
 
-        # Logging
+        # TensorBoard Logging - metriche visualizzabili in tempo reale
+        # Curve train vs validation per identificare overfitting
         writer.add_scalars(
             "Loss", {"Train": avg_train_loss, "Validation": avg_val_loss}, epoch + 1
         )
         writer.add_scalars(
             "Accuracy", {"Train": train_acc, "Validation": val_acc}, epoch + 1
         )
-        if num_classes >= 5:
+        if num_classes >= 5:  # Top-5 accuracy solo se ha senso (>= 5 classi)
             writer.add_scalar("Top5_Accuracy/Validation", val_top5_acc, epoch + 1)
-        writer.add_scalar("Learning_Rate", current_lr, epoch + 1)
+        writer.add_scalar("Learning_Rate", current_lr, epoch + 1)  # Track LR decay
 
         print(f"   Train - Loss: {avg_train_loss:.4f}, Acc: {train_acc:.2f}%")
         print(
@@ -457,28 +465,29 @@ def train_breeds(
         )
         print(f"   Current LR: {current_lr:.6f}")
 
-        # Salva miglior modello
+        # Model Checkpointing - salva solo quando validation accuracy migliora
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_epoch = epoch + 1
             print(f"   🏆 NEW BEST: {val_acc:.2f}% (epoch {epoch+1})")
 
+            # Salva checkpoint completo con metadati (per inference e analisi)
             os.makedirs(f"outputs/models/breeds_{num_breeds}", exist_ok=True)
             torch.save(
                 {
-                    "model_state_dict": model.state_dict(),
-                    "num_classes": num_classes,
-                    "breed_names": breed_names,
+                    "model_state_dict": model.state_dict(),  # Pesi del modello
+                    "num_classes": num_classes,  # Info architettura
+                    "breed_names": breed_names,  # Mapping indici → nomi razze
                     "epoch": epoch + 1,
                     "train_acc": train_acc,
                     "val_acc": val_acc,
                     "best_val_acc": best_val_acc,
-                    "hyperparameters": hparams,
+                    "hyperparameters": hparams,  # Per riproducibilità
                 },
                 f"outputs/models/breeds_{num_breeds}/best_model.pth",
             )
 
-        # Controllo early stopping
+        # Early Stopping - ferma training se validation loss non migliora
         if early_stopping(avg_val_loss):
             print(f"\n🛑 Early stopping! Nessun miglioramento per {patience} epoche")
             writer.add_text(
