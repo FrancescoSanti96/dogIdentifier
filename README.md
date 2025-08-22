@@ -66,10 +66,6 @@ python scripts/launch_tensorboard.py
 | **Parametri Trainable** | **3.32M**        | **61K**               | **54x meno**   |
 | **Australian Shepherd** | ✅ Incluso       | ✅ Incluso            | Stesso dataset |
 
-### **Messaggio Accademico**
-
-> _"Ho implementato ENTRAMBI gli approcci per dimostrare competenze complete. La CNN from-scratch dimostra padronanza nella progettazione di architetture, mentre il transfer learning dimostra efficienza pratica. Il gap di performance (+316% accuracy) illustra perfettamente il trade-off tra originalità e risultati."_
-
 ## 📋 Comandi Principali
 
 ```bash
@@ -103,35 +99,10 @@ python src/my_dog_train.py
 | 90      | 81.4%     | 96%     | 81.4%     | 95%+                | ✅     |
 | **121** | **78.8%** | **97%** | **77.2%** | **100%**            | ✅     |
 
-## 🏗️ **Architettura del Progetto**
-
-### **Struttura Modulare**
-```
-dogIdentifier/
-├── 🎯 src/                 # Script principali
-│   ├── train.py           # Training scalabile (5→121 razze)
-│   ├── prepare_data.py    # Dataset bilanciati
-│   ├── evaluate.py        # Analisi confusion matrix
-│   └── my_dog_train.py    # Classificazione binaria
-├── 🏗️ models/             # Architetture CNN
-│   └── breed_classifier.py # Factory: BreedClassifier + ResNet18-TL
-├── ⚙️ utils/               # Utilities modulari
-│   ├── dataloader.py      # Dataset custom + augmentation
-│   ├── early_stopping.py  # Prevenzione overfitting
-│   └── config_helper.py   # Gestione configurazioni
-├── 📊 outputs/            # Risultati e modelli
-│   ├── models/           # Checkpoint (breeds_N/)
-│   ├── analysis/         # Confusion matrix
-│   └── tensorboard/      # Logs TensorBoard
-└── 📂 data/               # Dataset organizzati
-    ├── breeds_5/         # 5 razze (test rapidi)
-    ├── top30_balanced/   # 30 razze (confronto)
-    └── full121_balanced/ # 121 razze complete
-```
-
 ### **Architetture CNN Implementate**
 
 #### **1. BreedClassifier (FROM SCRATCH - 134M parametri)**
+
 ```python
 # Architettura VGG-like personalizzata
 Input: (batch, 3, 224, 224)
@@ -142,6 +113,7 @@ Input: (batch, 3, 224, 224)
 ```
 
 #### **2. Transfer Learning (ResNet18 + Custom Head)**
+
 ```python
 # Backbone pre-addestrato + classificatore custom
 ResNet18(ImageNet) → freeze_backbone=True
@@ -151,6 +123,7 @@ ResNet18(ImageNet) → freeze_backbone=True
 ```
 
 ### **Pipeline di Training**
+
 ```python
 # Configurazione ottimizzata per deep learning
 ├── Loss: CrossEntropyLoss + Label Smoothing (0.1)
@@ -159,55 +132,6 @@ ResNet18(ImageNet) → freeze_backbone=True
 ├── Regularization: Dropout + Early Stopping + Gradient Clipping
 └── Monitoring: TensorBoard + Checkpoint automatici
 ```
-
-## 💻 **Competenze Tecniche Dimostrate**
-
-### **🧠 Deep Learning**
-
-- **CNN Architecture Design**: VGG-like personalizzata (134M parametri)
-- **Transfer Learning**: ResNet18 fine-tuning con backbone congelato
-- **Regularization**: BatchNorm, Dropout, Weight Decay, Early Stopping
-- **Optimization**: Adam/AdamW, ReduceLROnPlateau, Gradient Clipping
-
-### **🔬 Computer Vision**
-
-- **Data Augmentation**: RandomResizedCrop, HorizontalFlip, ColorJitter, Rotation
-- **Multi-class Classification**: 121 razze canine (Stanford Dogs Dataset)
-- **Dataset Management**: Splits bilanciati, WeightedRandomSampler
-- **Image Processing**: PIL + torchvision pipeline (224×224 ImageNet-style)
-
-### **⚙️ MLOps & Engineering**
-
-- **Experiment Tracking**: TensorBoard + hyperparameters logging
-- **Model Checkpointing**: Best model saving con early stopping
-- **Reproducibility**: Config-driven experiments, seed deterministico
-- **Code Modularity**: Factory pattern, utilities separate, config.json
-
-### **📊 Evaluation & Analysis**
-
-- **Multiple Metrics**: Accuracy, Top-5, macro F1-score, per-class recall
-- **Confusion Matrix**: Visualizzazioni dettagliate errori per classe
-- **Comparative Studies**: FROM SCRATCH vs Transfer Learning
-- **Scaling Analysis**: Performance 5→10→30→60→90→121 razze
-
-## 🎓 **Allineamento con Corso AI13**
-
-### **📚 Argomenti del Corso Coperti**
-
-- ✅ **Lezioni 1-2**: Python, NumPy, fondamenti programmazione
-- ✅ **Lezioni 3-4**: Computer Vision, preprocessing immagini, operazioni morfologiche
-- ✅ **Lezioni 5-6**: PyTorch, tensori, dataset custom, DataLoader
-- ✅ **Lezioni 7-8**: CNN, architetture, training loops, forward/backward pass
-- ✅ **Lezioni 9-10**: Optimization, loss functions, backpropagation, activation functions
-- ✅ **Lezioni 11-12**: Regularization, overfitting, validation, early stopping
-- ✅ **Lezione 13**: Transfer Learning, fine-tuning, feature extraction
-
-### **🏗️ Implementazioni Originali (Codice da Zero)**
-
-- **Custom CNN**: Progettazione architettura VGG-like completa (300+ righe)
-- **Training Pipeline**: Loop completo con validation, early stopping, checkpointing
-- **Data Pipeline**: Custom dataset + augmentation + bilanciamento
-- **Evaluation Framework**: Metriche multiple + confusion matrix + logging
 
 ## ⚙️ **Setup Ambiente**
 
@@ -224,19 +148,3 @@ pip install -r requirements.txt
 conda env create -f environment.yml
 conda activate dogidentifier
 ```
-
-## 🏆 **Conclusione**
-
-**Questo progetto dimostra:**
-
-1. **Padronanza tecnica completa** del deep learning (CNN from-scratch + Transfer Learning)
-2. **Implementazione rigorosa from-scratch** come richiesto dal professore
-3. **Approccio scientifico** con confronti quantitativi documentati
-4. **Competenze ingegneristiche** con codice modulare e professionale
-5. **Allineamento perfetto** con tutti gli argomenti del corso AI13
-
-**La combinazione di implementazione originale (134M parametri), risultati quantitativi solidi (77.2% accuracy su 121 razze), documentazione eccellente e approccio comparativo scientifico soddisfa tutti i criteri per l'eccellenza accademica.** ⭐
-
----
-
-\*Voto atteso: **30 e Lode\*** 🎯
