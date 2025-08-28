@@ -31,6 +31,17 @@ from utils.config_helper import ConfigHelper
 
 # Configurazioni per diverse scale di razze
 BREED_CONFIGS = {
+    5: {
+        "output_dir": "data/breeds_5",
+        "base_breeds": [
+            "Australian_Shepherd_Dog",  # Target principale
+            "Chihuahua",
+            "Japanese_spaniel", 
+            "Norwich_terrier",
+            "Siberian_husky",
+        ],
+        "description": "5 razze baseline per test rapidi",
+    },
     10: {
         "output_dir": "data/top10_balanced",
         "base_breeds": [
@@ -373,7 +384,7 @@ def main():
         "--breeds",
         type=int,
         required=True,
-        choices=[10, 30, 121],
+        choices=[5, 10, 30, 121],
         help="Numero di razze per il dataset",
     )
     parser.add_argument(
