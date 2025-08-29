@@ -311,7 +311,7 @@ USE_TL=1 → ResNet18 (transfer learning congelato)
 
 ### **10.3 Risultati Sperimentali (Validazione Teorica)**
 
-**Setup controllatp**: 30 razze bilanciate (`data/top30_balanced/`) - stesso dataset per confronto equo
+**Setup controllato**: 30 razze bilanciate (`data/top30_balanced/`) - stesso dataset per confronto equo
 
 | **Metrica**             | **FROM SCRATCH** | **TRANSFER LEARNING** | **Gap Motivazione**            |
 | ----------------------- | ---------------- | --------------------- | ------------------------------ |
