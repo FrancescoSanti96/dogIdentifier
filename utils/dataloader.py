@@ -266,16 +266,20 @@ class DogBreedDataset(Dataset):
 class MyDogDataset(Dataset):
     """Dataset personalizzato per identificazione cane personale (classificazione binaria)"""
 
-    def __init__(self, data_dir: str, transform=None):
+    def __init__(self, data_dir: str, transform=None, my_dog_folder="my_dog", other_dogs_folder="other_dogs"):
         """
         Inizializza dataset per cane personale
 
         Args:
-            data_dir: Directory con cartelle 'my_dog' e 'other_dogs'
+            data_dir: Directory con cartelle del mio cane e altri cani
             transform: Trasformazioni immagini
+            my_dog_folder: Nome cartella del mio cane (default: 'my_dog', può essere 'maggie')
+            other_dogs_folder: Nome cartella altri cani (default: 'other_dogs', può essere 'other')
         """
         self.data_dir = Path(data_dir)
         self.transform = transform
+        self.my_dog_folder = my_dog_folder
+        self.other_dogs_folder = other_dogs_folder
         self.images = []
         self.labels = []
 
@@ -283,8 +287,8 @@ class MyDogDataset(Dataset):
 
     def _load_data(self):
         """Load image paths and binary labels"""
-        my_dog_dir = self.data_dir / "my_dog"
-        other_dogs_dir = self.data_dir / "other_dogs"
+        my_dog_dir = self.data_dir / self.my_dog_folder
+        other_dogs_dir = self.data_dir / self.other_dogs_folder
 
         # Carica immagini del mio cane (etichetta 1)
         if my_dog_dir.exists():
@@ -311,7 +315,7 @@ class MyDogDataset(Dataset):
                 self.labels.append(0)
 
         print(
-            f"🐕 Personal dog dataset: {sum(self.labels)} my dog, {len(self.labels) - sum(self.labels)} other dogs"
+            f"🐕 Personal dog dataset: {sum(self.labels)} {self.my_dog_folder}, {len(self.labels) - sum(self.labels)} {self.other_dogs_folder}"
         )
 
     def __len__(self) -> int:
