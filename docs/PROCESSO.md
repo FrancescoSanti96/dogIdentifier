@@ -624,9 +624,69 @@ expected_performance = "71.5% ± 0.3%"  # Test accuracy robusta
 
 ---
 
-## **FASE 12: SISTEMA PREDIZIONE **
+## **FASE 12: IMPLEMENTAZIONE CHECKPOINT RESUME**
 
-### **12.1 Creazione Sistema Predizione **
+**Funzionalità implementata**:
+
+```bash
+# Training normale
+python src/train.py --breeds 30
+
+# 🆕 Resume da checkpoint intermedio
+python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
+```
+
+**Features chiave**:
+
+- ✅ **Complete state restoration**: Model, optimizer, scheduler, training progress
+- ✅ **Automatic checkpoints**: Salvati ogni 5 epoche + best model
+- ✅ **TensorBoard continuity**: Logging unificato attraverso interruzioni
+- ✅ **Backward compatibility**: Funziona con checkpoint esistenti
+
+### **13.3 Architettura Tecnica**
+
+**State preservation**:
+
+```python
+# Checkpoint completo
+torch.save({
+    "model_state_dict": model.state_dict(),
+    "optimizer_state_dict": optimizer.state_dict(),  # 🆕 Adam momentum/variance
+    "scheduler_state_dict": scheduler.state_dict(),  # 🆕 LR schedule state
+    "epoch": epoch + 1,                              # 🆕 Resume point
+    "best_val_acc": best_val_acc,                    # 🆕 Progress preservation
+    "tensorboard_dir": tb_logdir,                    # 🆕 Logging continuity
+    # ... metadata ...
+}, checkpoint_path)
+```
+
+**Resume logic**:
+
+```python
+if resume_from:
+    checkpoint = torch.load(resume_from)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])  # Preserva momentum
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])  # Preserva LR decay
+    start_epoch = checkpoint["epoch"]                              # Resume point
+
+# Training loop modificato
+for epoch in range(start_epoch, num_epochs):  # 🆕 Inizia da start_epoch
+```
+
+### **13.5 Checkpoint Strategy**
+
+**Automatic saving**:
+
+- **Best model**: Quando validation accuracy migliora
+- **Intermediate**: Ogni 5 epoche (`checkpoint_epoch_5.pth`, `checkpoint_epoch_10.pth`, ...)
+- **Final**: Ultima epoca per completeness
+
+---
+
+## **FASE 13: SISTEMA PREDIZIONE **
+
+### **13.1 Creazione Sistema Predizione **
 
 **Problema**: Due script separati (`predict_simple.py` per razze, `predict_binary.py` per Maggie) creano frammentazione dell'interfaccia utente.
 

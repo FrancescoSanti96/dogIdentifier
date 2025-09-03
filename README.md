@@ -30,6 +30,9 @@ MODEL_TYPE=full USE_TL=0 python src/train.py --breeds 30
 # 4. Training TRANSFER LEARNING (confronto)
 USE_TL=1 python src/train.py --breeds 30
 
+# 🆕 5. Resume training da checkpoint intermedio
+python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
+
 
 ## **Sistema di Predizione**
 
@@ -108,7 +111,15 @@ MODEL_TYPE=full USE_TL=0 python src/train.py --breeds 30
 
 # TRANSFER LEARNING (61K parametri)
 USE_TL=1 python src/train.py --breeds 30
+
+# 🆕 CHECKPOINT RESUME - Riprendi training da punto intermedio
+python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
 ```
+
+**Checkpoint automatici**:
+- **Best model**: Salvato quando validation accuracy migliora
+- **Intermediate**: Ogni 5 epoche (`checkpoint_epoch_5.pth`, `checkpoint_epoch_10.pth`, ...)
+- **Complete state**: Model + optimizer + scheduler + training progress preserved
 
 ### **🐕 2. Training Binario "È MAGGIE?"**
 

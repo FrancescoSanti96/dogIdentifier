@@ -8,6 +8,7 @@ per training progressivo scalabile da 5 a 121 razze canine.
 CARATTERISTICHE PRINCIPALI:
 -  CNN from-scratch personalizzata (134M parametri)
 -  Transfer Learning opzionale (ResNet18) - PER CONFRONTO SCIENTIFICO
+-  CHECKPOINT RESUME: Riprendi training da qualsiasi punto intermedio
 -  Scaling progressivo validato: 5→10→30→60→90→121 razze
 -  Configurazioni ottimizzate per ogni scala
 -  TensorBoard logging completo con hyperparameters
@@ -29,6 +30,9 @@ METODOLOGIA SCIENTIFICA:
 Usage:
     # Training from scratch (quello che vuole il professore)
     python src/train.py --breeds 30
+
+    # Resume training da checkpoint intermedio (NUOVO!)
+    python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
 
     # Transfer learning (per confronto scientifico)
     USE_TL=1 python src/train.py --breeds 30
@@ -141,6 +145,7 @@ def train_breeds(
     config_path: str = "config.json",
     profile: str | None = None,
     cli_overrides: dict | None = None,
+    resume_from: str | None = None,
 ):
     """
     Training unificato per il numero specificato di razze
@@ -154,10 +159,13 @@ def train_breeds(
         config_path: Percorso al file di configurazione JSON
         profile: Nome del profilo di configurazione da utilizzare
         cli_overrides: Override dei parametri da command line
+        resume_from: Path al checkpoint da cui riprendere il training
 
     Examples:
         >>> # Training from scratch 30 razze
         >>> train_breeds(30)
+        >>> # Resume training da checkpoint epoca 15
+        >>> train_breeds(30, resume_from="outputs/models/breeds_30/checkpoint_epoch_15.pth")
         >>> # Transfer learning 121 razze
         >>> os.environ['USE_TL'] = '1'
         >>> train_breeds(121)
@@ -364,9 +372,45 @@ def train_breeds(
 
     best_val_acc = 0.0
     best_epoch = 0
+    start_epoch = 0
+    
+    # 🔄 CHECKPOINT RESUME - Carica stato training da checkpoint intermedio
+    if resume_from:
+        print(f"\n🔄 Resuming training da checkpoint: {resume_from}")
+        if not os.path.exists(resume_from):
+            raise FileNotFoundError(f"Checkpoint non trovato: {resume_from}")
+            
+        checkpoint = torch.load(resume_from, map_location=device)
+        
+        # Carica stato modello
+        model.load_state_dict(checkpoint["model_state_dict"])
+        print(f"   ✅ Model state caricato")
+        
+        # Carica stato optimizer se disponibile
+        if "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            print(f"   ✅ Optimizer state caricato")
+            
+        # Carica stato scheduler se disponibile
+        if "scheduler_state_dict" in checkpoint:
+            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+            print(f"   ✅ Scheduler state caricato")
+            
+        # Carica training progress
+        start_epoch = checkpoint.get("epoch", 0)
+        best_val_acc = checkpoint.get("best_val_acc", 0.0)
+        best_epoch = checkpoint.get("best_epoch", 0)
+        
+        print(f"   📊 Resuming da epoca {start_epoch + 1}")
+        print(f"   🏆 Best validation accuracy: {best_val_acc:.2f}% (epoch {best_epoch})")
+        
+        # Aggiorna TensorBoard path per continuità
+        tb_logdir = checkpoint.get("tensorboard_dir", tb_logdir)
+        writer = SummaryWriter(tb_logdir)
+        print(f"   📊 TensorBoard logging continua: {tb_logdir}")
 
     # Loop di training principale - cuore dell'addestramento
-    for epoch in range(num_epochs):
+    for epoch in range(start_epoch, num_epochs):
         print(f"\n📅 Epoca {epoch+1}/{num_epochs}")
 
         # Fase di training - modello in modalità allenamento (dropout attivo, batchnorm updating)
@@ -476,16 +520,42 @@ def train_breeds(
             torch.save(
                 {
                     "model_state_dict": model.state_dict(),  # Pesi del modello
+                    "optimizer_state_dict": optimizer.state_dict(),  # Stato optimizer per resume
+                    "scheduler_state_dict": scheduler.state_dict(),  # Stato scheduler per resume
                     "num_classes": num_classes,  # Info architettura
                     "breed_names": breed_names,  # Mapping indici → nomi razze
                     "epoch": epoch + 1,
+                    "best_epoch": best_epoch,
                     "train_acc": train_acc,
                     "val_acc": val_acc,
                     "best_val_acc": best_val_acc,
                     "hyperparameters": hparams,  # Per riproducibilità
+                    "tensorboard_dir": tb_logdir,  # Per resume continuità logging
                 },
                 f"outputs/models/breeds_{num_breeds}/best_model.pth",
             )
+            
+        # 💾 CHECKPOINT INTERMEDIO - Salva ogni 5 epoche per recovery
+        if (epoch + 1) % 5 == 0 or epoch == num_epochs - 1:
+            checkpoint_path = f"outputs/models/breeds_{num_breeds}/checkpoint_epoch_{epoch+1}.pth"
+            torch.save(
+                {
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "num_classes": num_classes,
+                    "breed_names": breed_names,
+                    "epoch": epoch + 1,
+                    "best_epoch": best_epoch,
+                    "train_acc": train_acc,
+                    "val_acc": val_acc,
+                    "best_val_acc": best_val_acc,
+                    "hyperparameters": hparams,
+                    "tensorboard_dir": tb_logdir,
+                },
+                checkpoint_path,
+            )
+            print(f"   💾 Checkpoint intermedio salvato: {checkpoint_path}")
 
         # Early Stopping - ferma training se validation loss non migliora
         if early_stopping(avg_val_loss):
@@ -581,6 +651,11 @@ def main():
         choices=["full", "simple"],
         help="Sovrascrive architettura modello (full/simple)",
     )
+    parser.add_argument(
+        "--resume-from",
+        type=str,
+        help="Path al checkpoint da cui riprendere il training (es: outputs/models/breeds_30/checkpoint_epoch_15.pth)",
+    )
 
     args = parser.parse_args()
 
@@ -596,7 +671,7 @@ def main():
             "use_tl": args.use_tl,
             "model_type": args.model_type,
         }
-        results = train_breeds(args.breeds, args.config, args.profile, overrides)
+        results = train_breeds(args.breeds, args.config, args.profile, overrides, args.resume_from)
         print(f"\n✅ Training completato con successo!")
         print(f"   Breeds: {results['num_breeds']}")
         print(f"   Best accuracy: {results['best_val_acc']:.2f}%")
