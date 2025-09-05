@@ -349,19 +349,19 @@ def train_breeds(
     # Early stopping per prevenire overfitting
     early_stopping = EarlyStopping(patience=patience, delta=0.001)
 
-    # Iperparametri per logging
+    # Iperparametri per logging (solo tipi compatibili con TensorBoard)
     hparams = {
-        "num_breeds": num_breeds,
-        "num_classes": num_classes,
-        "epochs": num_epochs,
-        "batch_size": batch_size,
-        "learning_rate": learning_rate,
-        "dropout": dropout_rate,
-        "weight_decay": weight_decay,
-        "use_transfer_learning": use_tl,
-        "model_type": model_type if not use_tl else "resnet18",
-        "patience": patience,
-        "dataset": data_dir,
+        "num_breeds": int(num_breeds),
+        "num_classes": int(num_classes),
+        "epochs": int(num_epochs),
+        "batch_size": int(batch_size),
+        "learning_rate": float(learning_rate),
+        "dropout": float(dropout_rate),
+        "weight_decay": float(weight_decay),
+        "use_transfer_learning": int(use_tl),  # Convert bool to int
+        "model_type": str(model_type if not use_tl else "resnet18"),
+        "patience": int(patience),
+        "dataset_name": str(os.path.basename(data_dir)),  # Solo nome directory, non path completo
     }
 
     print(f"\n🏋️ Inizio training...")
@@ -490,17 +490,15 @@ def train_breeds(
         scheduler.step(avg_val_loss)  # ReduceLROnPlateau monitora val_loss
         current_lr = optimizer.param_groups[0]["lr"]
 
-        # TensorBoard Logging - metriche visualizzabili in tempo reale
-        # Curve train vs validation per identificare overfitting
-        writer.add_scalars(
-            "Loss", {"Train": avg_train_loss, "Validation": avg_val_loss}, epoch + 1
-        )
-        writer.add_scalars(
-            "Accuracy", {"Train": train_acc, "Validation": val_acc}, epoch + 1
-        )
+        # TensorBoard Logging - metriche visualizzabili in tempo reale  
+        # Logging compatto senza directory separate
+        writer.add_scalar("loss/train", avg_train_loss, epoch + 1)
+        writer.add_scalar("loss/validation", avg_val_loss, epoch + 1)
+        writer.add_scalar("accuracy/train", train_acc, epoch + 1)
+        writer.add_scalar("accuracy/validation", val_acc, epoch + 1)
         if num_classes >= 5:  # Top-5 accuracy solo se ha senso (>= 5 classi)
-            writer.add_scalar("Top5_Accuracy/Validation", val_top5_acc, epoch + 1)
-        writer.add_scalar("Learning_Rate", current_lr, epoch + 1)  # Track LR decay
+            writer.add_scalar("accuracy/top5_validation", val_top5_acc, epoch + 1)
+        writer.add_scalar("learning_rate", current_lr, epoch + 1)  # Track LR decay
 
         print(f"   Train - Loss: {avg_train_loss:.4f}, Acc: {train_acc:.2f}%")
         print(
@@ -581,14 +579,20 @@ def train_breeds(
     )
 
     # Log iperparametri con metriche finali
-    writer.add_hparams(
-        hparams,
-        {
-            "final_val_acc": val_acc,
-            "best_val_acc": best_val_acc,
-            "final_train_acc": train_acc,
-        },
-    )
+    print(f"\n📊 Salvando hyperparameters in TensorBoard...")
+    try:
+        writer.add_hparams(
+            hparams,
+            {
+                "final_val_acc": val_acc,
+                "best_val_acc": best_val_acc,
+                "final_train_acc": train_acc,
+            },
+        )
+        print(f"✅ Hyperparameters salvati con successo!")
+    except Exception as e:
+        print(f"❌ Errore nel salvare hyperparameters: {e}")
+        print(f"   Modello salvato, ma hparams saltati in TensorBoard")
 
     print(f"\n📈 Final Results:")
     print(f"   Best Val Acc: {best_val_acc:.2f}% (epoch {best_epoch})")
@@ -596,7 +600,9 @@ def train_breeds(
     print(f"   Models saved: outputs/models/breeds_{num_breeds}/")
     print(f"   TensorBoard: {tb_logdir}")
 
+    print(f"\n🔄 Chiudendo TensorBoard writer...")
     writer.close()
+    print(f"✅ TensorBoard writer chiuso correttamente!")
 
     return {
         "best_val_acc": best_val_acc,

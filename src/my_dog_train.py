@@ -67,6 +67,20 @@ def my_dog_train():
     print(f"   🎨 Data Augmentation: BILANCIATA")
     print(f"   📈 Dataset Size: +30% rispetto a prove precedenti")
 
+    # Iperparametri per logging TensorBoard (solo tipi compatibili)
+    hparams = {
+        "num_classes": 2,
+        "epochs": int(num_epochs),
+        "batch_size": int(batch_size),
+        "learning_rate": float(learning_rate),
+        "dropout": float(dropout_rate),
+        "patience": int(patience),
+        "model_type": "binary_classification",
+        "dataset_name": "my_dog_vs_others",
+        "use_transfer_learning": int(os.getenv("USE_TL", "0") == "1"),  # Convert bool to int
+        "augmentation": "balanced",
+    }
+
     # Data Augmentation OTTIMIZZATA (Configurazione 2 vincente)
     # La configurazione che ha dato il miglior bilanciamento bias-variance
     train_transform, val_transform = get_transforms(
@@ -242,12 +256,12 @@ def my_dog_train():
         val_acc = 100.0 * val_correct / val_total
         avg_val_loss = val_loss / len(val_loader)
 
-        # Logging
-        writer.add_scalar("Epoch/Train_Loss", avg_train_loss, epoch + 1)
-        writer.add_scalar("Epoch/Train_Accuracy", train_acc, epoch + 1)
-        writer.add_scalar("Epoch/Val_Loss", avg_val_loss, epoch + 1)
-        writer.add_scalar("Epoch/Val_Accuracy", val_acc, epoch + 1)
-        writer.add_scalar("Epoch/Learning_Rate", current_lr, epoch + 1)
+        # TensorBoard Logging - struttura pulita come train.py
+        writer.add_scalar("loss/train", avg_train_loss, epoch + 1)
+        writer.add_scalar("loss/validation", avg_val_loss, epoch + 1)
+        writer.add_scalar("accuracy/train", train_acc, epoch + 1)
+        writer.add_scalar("accuracy/validation", val_acc, epoch + 1)
+        writer.add_scalar("learning_rate", current_lr, epoch + 1)
 
         # Learning rate scheduling
         scheduler.step(avg_val_loss)
@@ -298,6 +312,16 @@ def my_dog_train():
             test_correct += predicted.eq(target).sum().item()
 
     test_acc = 100.0 * test_correct / test_total
+
+    # Log iperparametri con metriche finali su TensorBoard
+    writer.add_hparams(
+        hparams,
+        {
+            "final_val_acc": val_acc,
+            "best_val_acc": best_val_acc,
+            "final_test_acc": test_acc,
+        },
+    )
 
     print(f"🎯 FINAL RESULTS:")
     print(f"   Best Val Acc: {best_val_acc:.2f}% (epoch {best_epoch})")
