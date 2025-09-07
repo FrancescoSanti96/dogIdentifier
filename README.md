@@ -33,6 +33,11 @@ USE_TL=1 python src/train.py --breeds 30
 # 🆕 5. Resume training da checkpoint intermedio
 python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
 
+# 📊 6. Visualizza risultati TensorBoard
+python scripts/launch_tensorboard.py          # Training razze
+python scripts/launch_tensorboard.py --mydog  # Training binario
+````
+
 
 ## **Sistema di Predizione**
 
@@ -141,7 +146,22 @@ python src/evaluate.py --model outputs/models/breeds_30/best_model.pth
 python predict.py dog.jpg outputs/models/breeds_10/best_model.pth --binary-model outputs/my_dog/best_model.pth
 ```
 
-### **Architetture CNN Implementate**
+### **📊 4. Visualizzazione TensorBoard**
+
+```bash
+# Visualizza training razze (breeds_5, breeds_10, breeds_30, etc.)
+python scripts/launch_tensorboard.py
+
+# Visualizza training binario "È MAGGIE?" (separato per chiarezza)
+python scripts/launch_tensorboard.py --mydog
+```
+
+**Organizzazione TensorBoard:**
+- `outputs/tensorboard/breeds_*`: Training multiclass (5-121 razze)
+- `outputs/tensorboard/my_dog_training/`: Training binario "È MAGGIE?"
+- **Separazione netta** tra i due tipi per evitare confusione nei grafici
+
+### **🏗️ 5. Architetture CNN Implementate**
 
 #### **1. BreedClassifier (FROM SCRATCH - 134M parametri)**
 

@@ -129,32 +129,48 @@ BREED_CONFIGS = {
 }
 
 
-def topk_accuracy(output: torch.Tensor, target: torch.Tensor, topk=(1,)):
+def log_hparams_final(writer, hparams, metrics):
     """
-    Calcola l'accuratezza top-k per un batch.
-
+    Log finale degli hyperparameters con metriche complete.
+    
+    Questa funzione crea un logging separato per gli hyperparameters finali,
+    seguendo l'approccio del collega per migliorare la visualizzazione TensorBoard.
+    
     Args:
-        output (Tensor): Logits di dimensione (batch, num_classes)
-        target (Tensor): Label corrette di dimensione (batch)
-        topk (Tuple[int]): K da valutare (es. (1, 5))
-
-    Returns:
-        List[float]: Accuratezze percentuali per ciascun k in `topk`.
+        writer: SummaryWriter di TensorBoard
+        hparams: Dictionary degli hyperparameters
+        metrics: Dictionary delle metriche finali
     """
-    # Esempio: topk=(1,5) → calcola top-1 e top-5 accuracy
-    maxk = max(topk)
-    batch_size = target.size(0)
-    # `topk` restituisce gli indici delle classi con logit più alti
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    # Matrice booleana: righe=rank (1..k), colonne=batch
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
-    res = []
-    for k in topk:
-        # Conta quante volte la classe corretta compare nelle prime k predizioni
-        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
-        res.append((correct_k.mul_(100.0 / batch_size)).item())
-    return res
+    try:
+        # Crea una sub-directory per hparam tuning come fa il collega
+        hparam_log_dir = os.path.join(writer.log_dir, "hparam_tuning")
+        with SummaryWriter(hparam_log_dir) as hp_writer:
+            hp_writer.add_hparams(hparams, metrics)
+        print(f"✅ Hyperparameters salvati in: {hparam_log_dir}")
+    except Exception as e:
+        print(f"❌ Errore nel salvare hyperparameters: {e}")
+
+
+def log_hparams_final(writer, hparams, metrics):
+    """
+    Log finale degli hyperparameters con metriche complete.
+    
+    Questa funzione crea un logging separato per gli hyperparameters finali,
+    seguendo l'approccio del collega per migliorare la visualizzazione TensorBoard.
+    
+    Args:
+        writer: SummaryWriter di TensorBoard
+        hparams: Dictionary degli hyperparameters
+        metrics: Dictionary delle metriche finali
+    """
+    try:
+        # Crea una sub-directory per hparam tuning come fa il collega
+        hparam_log_dir = os.path.join(writer.log_dir, "hparam_tuning")
+        with SummaryWriter(hparam_log_dir) as hp_writer:
+            hp_writer.add_hparams(hparams, metrics)
+        print(f"✅ Hyperparameters salvati in: {hparam_log_dir}")
+    except Exception as e:
+        print(f"❌ Errore nel salvare hyperparameters: {e}")
 
 
 def train_breeds(
@@ -340,6 +356,15 @@ def train_breeds(
         )
     model = model.to(device)  # Sposta pesi su GPU se disponibile
 
+    # 📊 TensorBoard Model Graph - Visualizza architettura modello (ispirato al collega)
+    try:
+        # Prendi un sample batch per creare il graph
+        sample_batch = next(iter(train_loader))[0][:1].to(device)  # 1 immagine del batch
+        writer.add_graph(model, sample_batch)
+        print(f"📈 Model graph aggiunto a TensorBoard")
+    except Exception as e:
+        print(f"⚠️ Impossibile aggiungere model graph: {e}")
+
     # Training setup - Configurazione ottimizzata per deep learning
     # Loss function con label smoothing per evitare overconfidence sui dati training
     criterion = nn.CrossEntropyLoss(
@@ -364,20 +389,24 @@ def train_breeds(
     )
 
     # Early stopping per prevenire overfitting
-    early_stopping = EarlyStopping(patience=patience, delta=0.001)
-    # delta=0.001 evita trigger per oscillazioni numeriche minime
+    early_stopping = EarlyStopping(patience=patience, delta=0)
+    # delta=0 per considerare qualsiasi miglioramento (anche minimo)
 
     # Iperparametri per logging (solo tipi compatibili con TensorBoard)
     hparams = {
-        "num_breeds": int(num_breeds),
-        "num_classes": int(num_classes),
-        "epochs": int(num_epochs),
-        "batch_size": int(batch_size),
-        "learning_rate": float(learning_rate),
-        "dropout": float(dropout_rate),
-        "weight_decay": float(weight_decay),
-        "use_transfer_learning": int(use_tl),  # Convert bool to int
-        "model_type": str(model_type if not use_tl else "resnet18"),
+        "hp/num_breeds": int(num_breeds),
+        "hp/num_classes": int(num_classes),
+        "hp/epochs": int(num_epochs),
+        "hp/batch_size": int(batch_size),
+        "hp/learning_rate": float(learning_rate),
+        "hp/dropout": float(dropout_rate),
+        "hp/weight_decay": float(weight_decay),
+        "hp/transfer_learning": int(use_tl),  # Convert bool to int
+        "hp/model_type": str(model_type if not use_tl else "resnet18"),
+        "hp/architecture": "from_scratch" if not use_tl else "transfer_learning",
+        "hp/optimizer": "adamw",
+        "hp/scheduler": "reduce_lr_on_plateau",
+        "hp/label_smoothing": 0.1,
         "patience": int(patience),
         "dataset_name": str(os.path.basename(data_dir)),  # Solo nome directory, non path completo
     }
@@ -391,6 +420,10 @@ def train_breeds(
     best_val_acc = 0.0  # Migliore accuracy di validazione osservata
     best_epoch = 0
     start_epoch = 0
+    epoch = 0  # Inizializza epoch per gestire casi edge (early stopping immediato)
+    val_acc = 0.0  # Inizializza per evitare errori se training si interrompe subito
+    train_acc = 0.0  # Inizializza anche train_acc per consistenza
+    avg_val_loss = 0.0  # Inizializza avg_val_loss per evitare errori nel logging finale
     
     # 🔄 CHECKPOINT RESUME - Carica stato training da checkpoint intermedio
     if resume_from:
@@ -475,7 +508,6 @@ def train_breeds(
         val_loss = 0.0
         val_correct = 0
         val_total = 0
-        val_top5_correct = 0
 
         with torch.no_grad():  # Disabilita calcolo gradienti (più veloce + meno memoria)
             val_bar = tqdm(val_loader, desc=f"Val {epoch+1}")
@@ -490,11 +522,6 @@ def train_breeds(
                 val_total += target.size(0)
                 val_correct += predicted.eq(target).sum().item()
 
-                # Accuratezza Top-5: utile per classificazione con molte classi simili
-                if num_classes >= 5:
-                    top1, top5 = topk_accuracy(output, target, topk=(1, 5))
-                    val_top5_correct += (top5 * target.size(0)) / 100
-
                 # Postfix validazione: loss medio corrente e accuracy cumulativa
                 val_bar.set_postfix(
                     {
@@ -505,28 +532,22 @@ def train_breeds(
 
         val_acc = 100.0 * val_correct / val_total  # Accuracy media epoca (val)
         avg_val_loss = val_loss / len(val_loader)
-        val_top5_acc = 100.0 * val_top5_correct / val_total if num_classes >= 5 else 0
 
         # Learning Rate Scheduling - riduce LR quando validation loss smette di migliorare
         scheduler.step(avg_val_loss)  # ReduceLROnPlateau monitora val_loss
         current_lr = optimizer.param_groups[0]["lr"]
 
         # TensorBoard Logging - metriche visualizzabili in tempo reale  
-        # Logging compatto senza directory separate
+        # Logging compatto e pulito con solo le metriche essenziali
         writer.add_scalar("loss/train", avg_train_loss, epoch + 1)
         writer.add_scalar("loss/validation", avg_val_loss, epoch + 1)
         writer.add_scalar("accuracy/train", train_acc, epoch + 1)
         writer.add_scalar("accuracy/validation", val_acc, epoch + 1)
-        if num_classes >= 5:  # Top-5 accuracy solo se ha senso (>= 5 classi)
-            writer.add_scalar("accuracy/top5_validation", val_top5_acc, epoch + 1)
         writer.add_scalar("learning_rate", current_lr, epoch + 1)  # Track LR decay
         # Suggerimento: apri TensorBoard per confrontare run diverse in parallelo
 
         print(f"   Train - Loss: {avg_train_loss:.4f}, Acc: {train_acc:.2f}%")
-        print(
-            f"   Val   - Loss: {avg_val_loss:.4f}, Acc: {val_acc:.2f}%"
-            + (f", Top-5: {val_top5_acc:.2f}%" if num_classes >= 5 else "")
-        )
+        print(f"   Val   - Loss: {avg_val_loss:.4f}, Acc: {val_acc:.2f}%")
         print(f"   Current LR: {current_lr:.6f}")
 
         # Model Checkpointing - salva solo quando validation accuracy migliora
@@ -601,21 +622,21 @@ def train_breeds(
         f"outputs/models/breeds_{num_breeds}/final_model.pth",
     )
 
-    # Log iperparametri con metriche finali
+    # Log iperparametri con metriche finali usando approccio migliorato
     print(f"\n📊 Salvando hyperparameters in TensorBoard...")
-    try:
-        writer.add_hparams(
-            hparams,
-            {
-                "final_val_acc": val_acc,
-                "best_val_acc": best_val_acc,
-                "final_train_acc": train_acc,
-            },
-        )
-        print(f"✅ Hyperparameters salvati con successo!")
-    except Exception as e:
-        print(f"❌ Errore nel salvare hyperparameters: {e}")
-        print(f"   Modello salvato, ma hparams saltati in TensorBoard")
+    
+    # Prepara metriche finali strutturate come il collega
+    final_metrics = {
+        "hparam/final_val_acc": float(val_acc),
+        "hparam/best_val_acc": float(best_val_acc), 
+        "hparam/final_train_acc": float(train_acc),
+        "hparam/epochs_completed": float(epoch + 1),
+        "hparam/best_epoch": float(best_epoch),
+        "hparam/final_loss": float(avg_val_loss) if 'avg_val_loss' in locals() else 0.0,
+    }
+    
+    # Usa il sistema migliorato di logging (ispirato al collega)
+    log_hparams_final(writer, hparams, final_metrics)
 
     print(f"\n📈 Final Results:")
     print(f"   Best Val Acc: {best_val_acc:.2f}% (epoch {best_epoch})")

@@ -28,6 +28,28 @@ from utils.seed_utils import set_deterministic
 from torch.utils.data import DataLoader
 
 
+def log_hparams_final(writer, hparams, metrics):
+    """
+    Log finale degli hyperparameters con metriche complete.
+    
+    Funzione ispirata all'approccio del collega per migliorare la visualizzazione
+    degli hyperparameters in TensorBoard con directory separata.
+    
+    Args:
+        writer: SummaryWriter di TensorBoard
+        hparams: Dictionary degli hyperparameters
+        metrics: Dictionary delle metriche finali
+    """
+    try:
+        # Crea una sub-directory per hparam tuning
+        hparam_log_dir = os.path.join(writer.log_dir, "hparam_tuning")
+        with SummaryWriter(hparam_log_dir) as hp_writer:
+            hp_writer.add_hparams(hparams, metrics)
+        print(f"✅ Hyperparameters salvati in: {hparam_log_dir}")
+    except Exception as e:
+        print(f"❌ Errore nel salvare hyperparameters: {e}")
+
+
 def my_dog_train(epochs_override=None):
     """
     Esegue il training per la classificazione binaria "mio cane" vs "altri".
@@ -49,9 +71,9 @@ def my_dog_train(epochs_override=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Dispositivo utilizzato: {device}")
 
-    # Setup TensorBoard: logging con timestamp unico per distinguere le run
+    # Setup TensorBoard: logging separato per training binario "È MAGGIE?"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    tb_log_dir = f"outputs/tensorboard/my_dog_{timestamp}"
+    tb_log_dir = f"outputs/tensorboard_my_dog/my_dog_{timestamp}"
     os.makedirs(tb_log_dir, exist_ok=True)
     writer = SummaryWriter(tb_log_dir)
     print(f"📊 TensorBoard logging: {tb_log_dir}")
@@ -74,16 +96,18 @@ def my_dog_train(epochs_override=None):
 
     # Prepara hyperparameters per TensorBoard (tipi supportati: int/float/str)
     hparams = {
-        "num_classes": 2,  # Binario: mio cane vs altri
-        "epochs": int(num_epochs),
-        "batch_size": int(batch_size),
-        "learning_rate": float(learning_rate),
-        "dropout": float(dropout_rate),
-        "patience": int(patience),
-        "model_type": "binary_classification",
-        "dataset_name": "my_dog_vs_others",
-        "use_transfer_learning": int(os.getenv("USE_TL", "0") == "1"),  # Convert bool to int
-        "augmentation": "balanced",
+        "hp/num_classes": 2,  # Binario: mio cane vs altri
+        "hp/epochs": int(num_epochs),
+        "hp/batch_size": int(batch_size),
+        "hp/learning_rate": float(learning_rate),
+        "hp/dropout": float(dropout_rate),
+        "hp/patience": int(patience),
+        "hp/model_type": "binary_classification",
+        "hp/dataset": "my_dog_vs_others",
+        "hp/transfer_learning": int(os.getenv("USE_TL", "0") == "1"),  # Convert bool to int
+        "hp/augmentation": "balanced",
+        "hp/architecture": "simple_cnn",
+        "hp/optimizer": "adamw",
     }
     # Nota: TensorBoard supporta solo tipi primitivi; niente liste/oggetti complessi
 
@@ -183,6 +207,15 @@ def my_dog_train(epochs_override=None):
         )
     model = model.to(device)
 
+    # 📊 TensorBoard Model Graph - Visualizza architettura modello (come il collega)
+    try:
+        # Prendi un sample batch per creare il graph
+        sample_batch = next(iter(train_loader))[0][:1].to(device)  # 1 immagine del batch
+        writer.add_graph(model, sample_batch)
+        print(f"📈 Model graph aggiunto a TensorBoard")
+    except Exception as e:
+        print(f"⚠️ Impossibile aggiungere model graph: {e}")
+
     print(f"\n🔧 Modello binario:")  # Info modello utile per confronti
     total_params = sum(p.numel() for p in model.parameters())
     print(f"   Parametri: {total_params:,}")
@@ -199,6 +232,9 @@ def my_dog_train(epochs_override=None):
     # Loop di training
     best_val_acc = 0.0
     best_epoch = 0
+    epoch = 0  # Inizializza epoch per gestire casi edge (early stopping immediato)
+    val_acc = 0.0  # Inizializza per evitare errori se training si interrompe subito
+    train_acc = 0.0  # Inizializza anche train_acc per consistenza
 
     print(f"\n🚀 INIZIO TRAINING BINARIO")
     print("=" * 50)
@@ -323,15 +359,20 @@ def my_dog_train(epochs_override=None):
 
     test_acc = 100.0 * test_correct / test_total
 
-    # Log iperparametri con metriche finali su TensorBoard
-    writer.add_hparams(
-        hparams,
-        {
-            "final_val_acc": val_acc,
-            "best_val_acc": best_val_acc,
-            "final_test_acc": test_acc,
-        },
-    )
+    # Log iperparametri con metriche finali usando approccio migliorato
+    print(f"\n📊 Salvando hyperparameters in TensorBoard...")
+    
+    # Prepara metriche finali strutturate come il collega
+    final_metrics = {
+        "hparam/final_val_acc": float(val_acc),
+        "hparam/best_val_acc": float(best_val_acc),
+        "hparam/final_test_acc": float(test_acc),
+        "hparam/epochs_completed": float(epoch + 1),
+        "hparam/final_train_acc": float(train_acc),
+    }
+    
+    # Usa il sistema migliorato di logging (ispirato al collega)
+    log_hparams_final(writer, hparams, final_metrics)
 
     print(f"🎯 FINAL RESULTS:")  # Riepilogo finale
     print(f"   Best Val Acc: {best_val_acc:.2f}% (epoch {best_epoch})")
@@ -339,7 +380,9 @@ def my_dog_train(epochs_override=None):
     print(f"   Model saved: outputs/my_dog/best_model.pth")
     print(f"   TensorBoard: {tb_log_dir}")
 
+    print(f"\n🔄 Chiudendo TensorBoard writer...")
     writer.close()
+    print(f"✅ TensorBoard writer chiuso correttamente!")
 
     return {
         "best_val_acc": best_val_acc,
