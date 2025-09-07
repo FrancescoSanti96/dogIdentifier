@@ -65,10 +65,11 @@ def analyze_confusion(
     print("=" * 50)
 
     # Configurazione
+    # Setup hardware: utilizza GPU se disponibile per inference veloce
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Dispositivo utilizzato: {device}")
+    print(f"🖥️  Device: {device}")
 
-    # Carica il modello salvato
+    # Carica il modello salvato con error handling
     if not os.path.exists(model_path):
         print(f"❌ Modello non trovato: {model_path}")
         return
@@ -76,7 +77,7 @@ def analyze_confusion(
     print(f"📂 Caricando modello da: {model_path}")
     checkpoint = torch.load(model_path, map_location=device)
 
-    # Informazioni dal checkpoint
+    # Estrai metadati dal checkpoint per ricostruire architettura
     num_classes = checkpoint["num_classes"]
     breed_names = checkpoint.get("breed_names")
 

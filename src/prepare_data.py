@@ -29,11 +29,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.config_helper import ConfigHelper
 
 
-# Configurazioni per diverse scale di razze
+# Configurazioni per preparazione dataset a diverse scale
+# Ogni configurazione specifica razze target e directory output per training progressivo
 BREED_CONFIGS = {
     "binary": {
         "output_dir": "data/my_dog_vs_others_splits",
-        "source_dir": "data/my_dog_vs_others",
+        "source_dir": "data/my_dog_vs_others", 
         "description": "Dataset binario: il mio cane vs altri",
     },
     5: {
@@ -45,7 +46,7 @@ BREED_CONFIGS = {
             "Norwich_terrier",
             "Siberian_husky",
         ],
-        "description": "5 razze baseline per test rapidi",
+        "description": "5 razze baseline per test rapidi e debug",
     },
     10: {
         "output_dir": "data/top10_balanced",
@@ -78,15 +79,15 @@ BREED_CONFIGS = {
 
 def prepare_binary_dataset(source_dir: str, output_dir: str, config_path: str = "config.json"):
     """
-    Prepara il dataset binario my_dog vs others con split fisici
-    
+    Crea gli split fisici per il dataset binario my_dog vs others.
+
     Args:
-        source_dir: Directory sorgente (data/my_dog_vs_others)
-        output_dir: Directory di output per gli split
-        config_path: Percorso al file di configurazione
-    
+        source_dir (str): Directory sorgente (es. data/my_dog_vs_others)
+        output_dir (str): Directory di output per gli split
+        config_path (str): Percorso al file di configurazione
+
     Returns:
-        Dizionario con statistiche del dataset
+        dict: Statistiche del dataset creato
     """
     print("🐕 PREPARAZIONE DATASET BINARIO")
     print("===============================")
@@ -194,7 +195,7 @@ def prepare_binary_dataset(source_dir: str, output_dir: str, config_path: str = 
 
 
 def get_breed_image_counts(source_dir: Path) -> dict:
-    """Conta le immagini per ogni razza nel dataset sorgente"""
+    """Conta le immagini per ogni razza nel dataset sorgente."""
     breed_counts = {}
 
     for breed_dir in source_dir.iterdir():
@@ -213,7 +214,7 @@ def get_breed_image_counts(source_dir: Path) -> dict:
 def select_breeds_for_scale(
     source_dir: Path, num_breeds: int, base_breeds: list = None
 ) -> list:
-    """Seleziona le razze per il dataset in base alla scala richiesta"""
+    """Seleziona le razze per il dataset in base alla scala richiesta."""
     breed_counts = get_breed_image_counts(source_dir)
 
     if base_breeds:
@@ -263,8 +264,8 @@ def calculate_balanced_samples(breed_counts: dict, target_total: int = None) -> 
         breed_counts: Dizionario {breed_name: num_images}
         target_total: Numero totale target di immagini (opzionale)
 
-    Restituisce:
-        Dizionario {breed_name: num_samples_to_use}
+    Returns:
+        dict: Mapping {breed_name: num_samples_to_use}
     """
     if not breed_counts:
         return {}
@@ -300,7 +301,7 @@ def create_balanced_splits(
     val_ratio: float = 0.15,
     test_ratio: float = 0.15,
 ):
-    """Crea split bilanciati per le razze selezionate"""
+    """Crea split bilanciati per le razze selezionate."""
 
     print(f"📂 Creando dataset bilanciato in: {output_dir}")
     print(f"🎯 Razze selezionate: {len(selected_breeds)}")
@@ -443,7 +444,7 @@ def create_balanced_splits(
 def prepare_breeds_dataset(
     num_breeds: int, source_dir: str = "data/breeds", config_path: str = "config.json"
 ):
-    """Prepara dataset bilanciato per il numero specificato di razze"""
+    """Prepara dataset bilanciato per il numero specificato di razze."""
 
     if num_breeds not in BREED_CONFIGS:
         raise ValueError(

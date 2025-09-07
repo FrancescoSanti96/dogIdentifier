@@ -80,6 +80,9 @@ from utils.seed_utils import set_deterministic
 
 
 # Configurazioni ottimali per ogni scala di razze
+# Questi parametri sono stati calibrati sperimentalmente per ottenere
+# un buon trade-off tra accuratezza e tempo di addestramento per ogni scala
+# Preset per dataset di dimensioni crescenti: usati come baseline sensata
 BREED_CONFIGS = {
     5: {
         "data_dir": "data/breeds_5",
@@ -127,14 +130,28 @@ BREED_CONFIGS = {
 
 
 def topk_accuracy(output: torch.Tensor, target: torch.Tensor, topk=(1,)):
-    """Calcola accuratezza top-k"""
+    """
+    Calcola l'accuratezza top-k per un batch.
+
+    Args:
+        output (Tensor): Logits di dimensione (batch, num_classes)
+        target (Tensor): Label corrette di dimensione (batch)
+        topk (Tuple[int]): K da valutare (es. (1, 5))
+
+    Returns:
+        List[float]: Accuratezze percentuali per ciascun k in `topk`.
+    """
+    # Esempio: topk=(1,5) → calcola top-1 e top-5 accuracy
     maxk = max(topk)
     batch_size = target.size(0)
+    # `topk` restituisce gli indici delle classi con logit più alti
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
+    # Matrice booleana: righe=rank (1..k), colonne=batch
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     res = []
     for k in topk:
+        # Conta quante volte la classe corretta compare nelle prime k predizioni
         correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
         res.append((correct_k.mul_(100.0 / batch_size)).item())
     return res
@@ -148,27 +165,20 @@ def train_breeds(
     resume_from: str | None = None,
 ):
     """
-    Training unificato per il numero specificato di razze
+    Esegue il training per la classificazione di `num_breeds` razze.
 
-    Questa funzione implementa il training progressivo scalabile da 5 a 121 razze
-    con configurazioni ottimizzate per ogni scala. Supporta sia training from-scratch
-    che transfer learning tramite variabili d'ambiente.
+    Implementa training progressivo (5→121), resume da checkpoint e confronto
+    from-scratch vs transfer learning, con logging su TensorBoard.
 
     Args:
-        num_breeds: Numero di razze da addestrare (5, 10, 30, 60, 90, 121)
-        config_path: Percorso al file di configurazione JSON
-        profile: Nome del profilo di configurazione da utilizzare
-        cli_overrides: Override dei parametri da command line
-        resume_from: Path al checkpoint da cui riprendere il training
+        num_breeds (int): Numero di razze (5, 10, 30, 60, 90, 121)
+        config_path (str): Percorso al file di configurazione JSON
+        profile (str | None): Profilo di configurazione da applicare
+        cli_overrides (dict | None): Override CLI dei parametri
+        resume_from (str | None): Checkpoint da cui riprendere il training
 
-    Examples:
-        >>> # Training from scratch 30 razze
-        >>> train_breeds(30)
-        >>> # Resume training da checkpoint epoca 15
-        >>> train_breeds(30, resume_from="outputs/models/breeds_30/checkpoint_epoch_15.pth")
-        >>> # Transfer learning 121 razze
-        >>> os.environ['USE_TL'] = '1'
-        >>> train_breeds(121)
+    Returns:
+        dict: Risultati principali e metadati (best acc, epochs, tb dir,...)
     """
     if num_breeds not in BREED_CONFIGS:
         raise ValueError(
@@ -200,12 +210,15 @@ def train_breeds(
     print(f"🚀 TRAINING {num_breeds} BREEDS + TENSORBOARD")
     print("=" * 50)
     print(f"📊 Training {BREED_CONFIGS[num_breeds]['description']}")
+    # Le tre righe sopra forniscono un header chiaro all'inizio della run
 
+    # Riproducibilità e scelta device
     set_deterministic(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Configurazione TensorBoard
+    # Configurazione TensorBoard (consente tracking di tutte le metriche)
+    # Ogni run ottiene una directory dedicata su TensorBoard (per confronto esperimenti)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tb_logdir = (
         f"outputs/tensorboard/breeds_{num_breeds}/breeds_{num_breeds}_{timestamp}"
@@ -222,7 +235,7 @@ def train_breeds(
     # 2. Profile da config.json (opzionale)
     # 3. Environment variables (per switching rapido)
     # 4. CLI arguments (per override specifici)
-    data_dir = merged_defaults["data_dir"]
+    data_dir = merged_defaults["data_dir"]  # Path agli split fisici
     num_epochs = merged_defaults["epochs"]
     learning_rate = merged_defaults["lr"]
     patience = merged_defaults["patience"]
@@ -231,7 +244,7 @@ def train_breeds(
     weight_decay = merged_defaults["weight_decay"]
     use_tl_default = merged_defaults["use_tl"]
 
-    # Applica override da variabili d'ambiente
+    # Applica override da variabili d'ambiente (comodo per lanciare test veloci)
     data_dir = os.getenv("SPLITS_DIR", data_dir)
     num_epochs = int(os.getenv("EPOCHS", str(num_epochs)))
     batch_size = int(os.getenv("BATCH_SIZE", str(batch_size)))
@@ -241,8 +254,9 @@ def train_breeds(
     weight_decay = float(os.getenv("WD", str(weight_decay)))
     use_tl = int(os.getenv("USE_TL", str(use_tl_default)))
     model_type = os.getenv("MODEL_TYPE", "full").lower()  # 'full' o 'simple'
+    # Nota: MODEL_TYPE rilevante solo in training from scratch
 
-    # Applica override CLI per ultimi
+    # Applica override CLI per ultimi (hanno massima priorità)
     if cli_overrides:
         if cli_overrides.get("data_dir"):
             data_dir = cli_overrides["data_dir"]
@@ -263,7 +277,7 @@ def train_breeds(
         if cli_overrides.get("model_type") is not None:
             model_type = cli_overrides["model_type"].lower()
 
-    print(f"\n⚡ CONFIGURAZIONE:")
+    print(f"\n⚡ CONFIGURAZIONE:")  # Riepilogo finale dei parametri effettivi
     print(f"   Dataset: {data_dir}")
     print(f"   Epochs: {num_epochs}")
     print(f"   Batch size: {batch_size}")
@@ -275,7 +289,7 @@ def train_breeds(
     # Carica configurazione data augmentation
     config = ConfigHelper(config_path)
     augmentation_config = config.get_augmentation_config()
-    # Defaults se config vuoto
+    # Defaults se config vuoto (garantisce esecuzione anche senza file di config)
     if not augmentation_config:
         augmentation_config = {
             "random_resized_crop": True,
@@ -284,8 +298,10 @@ def train_breeds(
             "horizontal_flip": True,
             "rotation": 10,
         }
+        # Nota: valori conservativi per ridurre over-augmentation sui cani
 
     print(f"\n📂 Caricando dataset da: {data_dir}")
+    # Crea i DataLoader per i tre split; usa weighted sampler per class imbalance
     train_loader, val_loader, test_loader = create_dataloaders_from_splits(
         splits_dir=data_dir,
         batch_size=batch_size,
@@ -322,7 +338,7 @@ def train_breeds(
             dropout_rate=dropout_rate,
             use_batch_norm=True,  # Batch normalization per stabilità
         )
-    model = model.to(device)
+    model = model.to(device)  # Sposta pesi su GPU se disponibile
 
     # Training setup - Configurazione ottimizzata per deep learning
     # Loss function con label smoothing per evitare overconfidence sui dati training
@@ -337,17 +353,19 @@ def train_breeds(
         lr=learning_rate,
         weight_decay=weight_decay,  # L2 regularization per prevenire overfitting
     )
+    # Nota: AdamW separa weight decay dall'adaptive moment correction (meglio di Adam)
 
-    # Learning rate scheduler: riduce LR quando validation loss plateau
+    # Learning rate scheduler: riduce LR quando validation loss plateau (adattivo)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode="min",  # Monitora validation loss (minimizzazione)
-        factor=0.8,  # Riduce LR del 20% ad ogni plateau
-        patience=3,  # Aspetta 3 epoche prima di ridurre
+        factor=0.8,  # Riduce LR del 20% ad ogni plateau (decadimento morbido)
+        patience=3,  # Attende 3 epoche senza miglioramenti prima del decay
     )
 
     # Early stopping per prevenire overfitting
     early_stopping = EarlyStopping(patience=patience, delta=0.001)
+    # delta=0.001 evita trigger per oscillazioni numeriche minime
 
     # Iperparametri per logging (solo tipi compatibili con TensorBoard)
     hparams = {
@@ -370,7 +388,7 @@ def train_breeds(
         f"   Parametri trainable: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}"
     )
 
-    best_val_acc = 0.0
+    best_val_acc = 0.0  # Migliore accuracy di validazione osservata
     best_epoch = 0
     start_epoch = 0
     
@@ -380,7 +398,7 @@ def train_breeds(
         if not os.path.exists(resume_from):
             raise FileNotFoundError(f"Checkpoint non trovato: {resume_from}")
             
-        checkpoint = torch.load(resume_from, map_location=device)
+        checkpoint = torch.load(resume_from, map_location=device)  # Safe load su CPU/GPU
         
         # Carica stato modello
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -406,7 +424,7 @@ def train_breeds(
         
         # Aggiorna TensorBoard path per continuità
         tb_logdir = checkpoint.get("tensorboard_dir", tb_logdir)
-        writer = SummaryWriter(tb_logdir)
+        writer = SummaryWriter(tb_logdir)  # Continua a scrivere nello stesso run dir
         print(f"   📊 TensorBoard logging continua: {tb_logdir}")
 
     # Loop di training principale - cuore dell'addestramento
@@ -414,7 +432,8 @@ def train_breeds(
         print(f"\n📅 Epoca {epoch+1}/{num_epochs}")
 
         # Fase di training - modello in modalità allenamento (dropout attivo, batchnorm updating)
-        model.train()  # Abilita dropout e aggiornamento BatchNorm statistics
+        # Modalità training: abilita dropout e aggiorna statistiche BatchNorm
+        model.train()
         running_loss = 0.0
         correct = 0
         total = 0
@@ -428,7 +447,7 @@ def train_breeds(
             optimizer.zero_grad()  # Reset gradienti batch precedente
             output = model(data)  # Forward pass: predizioni del modello
             loss = criterion(output, target)  # Calcola CrossEntropy loss
-            loss.backward()  # Backward pass: calcola gradienti
+            loss.backward()  # Backpropagation
 
             # Gradient clipping per stabilità training (previene exploding gradients in CNN profonde)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -440,6 +459,7 @@ def train_breeds(
             total += target.size(0)
             correct += predicted.eq(target).sum().item()  # Conta predizioni corrette
 
+            # Aggiorna barra di progresso con media loss e accuracy corrente (online)
             train_bar.set_postfix(
                 {
                     "Loss": f"{running_loss/(batch_idx+1):.4f}",
@@ -447,7 +467,7 @@ def train_breeds(
                 }
             )
 
-        train_acc = 100.0 * correct / total
+        train_acc = 100.0 * correct / total  # Accuracy media epoca (train)
         avg_train_loss = running_loss / len(train_loader)
 
         # Fase di validazione - valuta performance su dati mai visti durante training
@@ -461,7 +481,7 @@ def train_breeds(
             val_bar = tqdm(val_loader, desc=f"Val {epoch+1}")
             for data, target in val_bar:
                 data, target = data.to(device), target.to(device)
-                output = model(data)  # Forward pass senza gradienti
+                output = model(data)  # Forward pass senza gradienti (no backward)
                 loss = criterion(output, target)
 
                 # Accumula statistiche validazione (no aggiornamento pesi!)
@@ -475,6 +495,7 @@ def train_breeds(
                     top1, top5 = topk_accuracy(output, target, topk=(1, 5))
                     val_top5_correct += (top5 * target.size(0)) / 100
 
+                # Postfix validazione: loss medio corrente e accuracy cumulativa
                 val_bar.set_postfix(
                     {
                         "Loss": f"{val_loss/(len(val_bar.iterable)):.4f}",
@@ -482,7 +503,7 @@ def train_breeds(
                     }
                 )
 
-        val_acc = 100.0 * val_correct / val_total
+        val_acc = 100.0 * val_correct / val_total  # Accuracy media epoca (val)
         avg_val_loss = val_loss / len(val_loader)
         val_top5_acc = 100.0 * val_top5_correct / val_total if num_classes >= 5 else 0
 
@@ -499,6 +520,7 @@ def train_breeds(
         if num_classes >= 5:  # Top-5 accuracy solo se ha senso (>= 5 classi)
             writer.add_scalar("accuracy/top5_validation", val_top5_acc, epoch + 1)
         writer.add_scalar("learning_rate", current_lr, epoch + 1)  # Track LR decay
+        # Suggerimento: apri TensorBoard per confrontare run diverse in parallelo
 
         print(f"   Train - Loss: {avg_train_loss:.4f}, Acc: {train_acc:.2f}%")
         print(
@@ -522,7 +544,7 @@ def train_breeds(
                     "scheduler_state_dict": scheduler.state_dict(),  # Stato scheduler per resume
                     "num_classes": num_classes,  # Info architettura
                     "breed_names": breed_names,  # Mapping indici → nomi razze
-                    "epoch": epoch + 1,
+                    "epoch": epoch + 1,  # utile per riprendere senza perdere il conteggio
                     "best_epoch": best_epoch,
                     "train_acc": train_acc,
                     "val_acc": val_acc,
@@ -553,6 +575,7 @@ def train_breeds(
                 },
                 checkpoint_path,
             )
+            # Questi checkpoint intermedi aiutano in caso di crash/stop improvvisi
             print(f"   💾 Checkpoint intermedio salvato: {checkpoint_path}")
 
         # Early Stopping - ferma training se validation loss non migliora
@@ -563,7 +586,7 @@ def train_breeds(
             )
             break
 
-    # Salva modello finale
+    # Salva modello finale (utile per ripresa/analisi anche senza best)
     torch.save(
         {
             "model_state_dict": model.state_dict(),
@@ -604,6 +627,7 @@ def train_breeds(
     writer.close()
     print(f"✅ TensorBoard writer chiuso correttamente!")
 
+    # Restituisce un piccolo riepilogo utile per script esterni/notebook
     return {
         "best_val_acc": best_val_acc,
         "final_val_acc": val_acc,
@@ -615,6 +639,7 @@ def train_breeds(
 
 def main():
     parser = argparse.ArgumentParser(description="Training unificato razze canine")
+    # Argomenti CLI principali (obbligatori/frequenti)
     parser.add_argument(
         "--breeds",
         type=int,
@@ -663,9 +688,10 @@ def main():
         help="Path al checkpoint da cui riprendere il training (es: outputs/models/breeds_30/checkpoint_epoch_15.pth)",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args()  # Parsing CLI
 
     try:
+        # Costruisci dizionario override da passare alla funzione principale
         overrides = {
             "epochs": args.epochs,
             "lr": args.lr,
@@ -677,13 +703,15 @@ def main():
             "use_tl": args.use_tl,
             "model_type": args.model_type,
         }
-        results = train_breeds(args.breeds, args.config, args.profile, overrides, args.resume_from)
+        results = train_breeds(
+            args.breeds, args.config, args.profile, overrides, args.resume_from
+        )
         print(f"\n✅ Training completato con successo!")
         print(f"   Breeds: {results['num_breeds']}")
         print(f"   Best accuracy: {results['best_val_acc']:.2f}%")
 
     except Exception as e:
-        print(f"\n❌ Errore durante il training: {e}")
+        print(f"\n❌ Errore durante il training: {e}")  # Messaggio chiaro per debugging rapido
         sys.exit(1)
 
 

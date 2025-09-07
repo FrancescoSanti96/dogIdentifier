@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 """
-Fase 2 - T    # Verifica dataset con split preparati
-    splits_dir = "data/my_dog_vs_others_splits"
-    if not os.path.exists(splits_dir):
-        print(f"❌ Dataset con split non trovato: {splits_dir}")
-        print("💡 Esegui prima: python src/prepare_data.py --binary")
-        return
+Training binario per identificazione del mio cane (Australian Shepherd) vs altri cani.
 
-    # Dataset - caricamento da split preparati
-    print(f"\n📂 Caricando dataset binario con split preparati...")er identificazione binaria del mio cane Australian Shepherd
-Classificazione binaria: il mio cane vs altri cani
+Questo script addestra un classificatore binario utilizzando gli split fisici
+creati da `src/prepare_data.py --binary`. Esegue training, validazione e test,
+con logging su TensorBoard e salvataggio del best model.
 """
 
 import os
 import sys
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -32,44 +28,53 @@ from utils.seed_utils import set_deterministic
 from torch.utils.data import DataLoader
 
 
-def my_dog_train():
-    """Training per identificazione binaria del mio cane Australian Shepherd"""
+def my_dog_train(epochs_override=None):
+    """
+    Esegue il training per la classificazione binaria "mio cane" vs "altri".
+
+    Args:
+        epochs_override (int | None): Numero epoche da usare al posto del default.
+
+    Returns:
+        dict: Risultati principali con chiavi `best_val_acc`, `test_acc`, `epochs`,
+              `tensorboard_dir`.
+    """
     print("🐕 MY DOG BINARY CLASSIFICATION TRAINING")
     print("========================================")
     print("🎯 Il mio Australian Shepherd vs Altri cani")
+    # Header leggibile per distinguere facilmente la run nei log
 
-    # Setup
-    set_deterministic(42)
+    # Setup base: seed per riproducibilità e device detection
+    set_deterministic(42)  # Seed fisso per risultati riproducibili
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Dispositivo utilizzato: {device}")
 
-    # TensorBoard setup
+    # Setup TensorBoard: logging con timestamp unico per distinguere le run
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tb_log_dir = f"outputs/tensorboard/my_dog_{timestamp}"
     os.makedirs(tb_log_dir, exist_ok=True)
     writer = SummaryWriter(tb_log_dir)
     print(f"📊 TensorBoard logging: {tb_log_dir}")
+    # Avvia con: python scripts/launch_tensorboard.py (porta 6006)
 
-    # Configurazione Binaria - OTTIMIZZATA (Configurazione 2 vincente)
-    # La configurazione che ha ottenuto il miglior test accuracy: 71.4%
-    num_epochs = 30  # Epoche sufficienti con early stopping
-    batch_size = 12  # Batch ottimale per stabilità
-    learning_rate = 0.0003  # Learning rate bilanciato
-    patience = 8  # Patience appropriata
-    dropout_rate = 0.5  # Dropout efficace ma non eccessivo
+    # Configurazione ottimizzata da sperimentazione precedente
+    # Questi parametri hanno dato il miglior test accuracy: 71.4%
+    num_epochs = epochs_override if epochs_override is not None else 30  # CLI override o default
+    batch_size = 12  # Trovato ottimale per stabilità training
+    learning_rate = 0.0003  # Bilanciato: non troppo aggressivo
+    patience = 8  # Early stopping: abbastanza tempo per convergere
+    dropout_rate = 0.5  # Regolarizzazione efficace
 
-    print(f"\n⚙️ CONFIGURAZIONE OTTIMIZZATA (Vincente #2):")
+    print(f"\n⚙️ CONFIGURAZIONE:")
     print(f"   Epochs: {num_epochs}")
     print(f"   Batch size: {batch_size}")
     print(f"   Learning rate: {learning_rate}")
     print(f"   Patience: {patience}")
     print(f"   Dropout: {dropout_rate}")
-    print(f"   🎨 Data Augmentation: BILANCIATA")
-    print(f"   📈 Dataset Size: +30% rispetto a prove precedenti")
 
-    # Iperparametri per logging TensorBoard (solo tipi compatibili)
+    # Prepara hyperparameters per TensorBoard (tipi supportati: int/float/str)
     hparams = {
-        "num_classes": 2,
+        "num_classes": 2,  # Binario: mio cane vs altri
         "epochs": int(num_epochs),
         "batch_size": int(batch_size),
         "learning_rate": float(learning_rate),
@@ -80,6 +85,7 @@ def my_dog_train():
         "use_transfer_learning": int(os.getenv("USE_TL", "0") == "1"),  # Convert bool to int
         "augmentation": "balanced",
     }
+    # Nota: TensorBoard supporta solo tipi primitivi; niente liste/oggetti complessi
 
     # Data Augmentation OTTIMIZZATA (Configurazione 2 vincente)
     # La configurazione che ha dato il miglior bilanciamento bias-variance
@@ -102,7 +108,7 @@ def my_dog_train():
         return
 
     # Dataset
-    print(f"\n📂 Caricando dataset binario con split preparati...")
+    print(f"\n📂 Caricando dataset binario con split preparati...")  # Feedback iniziale
     
     # Carica dataset da split fisici
     train_dataset = MyDogDataset(
@@ -130,21 +136,22 @@ def my_dog_train():
         print("❌ Dataset di training vuoto!")
         return
 
-    print(f"📊 Dataset caricato:")
+    print(f"📊 Dataset caricato:")  # Riepilogo dimensioni split
     print(f"   Train: {len(train_dataset)} immagini")
     print(f"   Validation: {len(val_dataset)} immagini") 
     print(f"   Test: {len(test_dataset)} immagini")
     print(f"   Totale: {len(train_dataset) + len(val_dataset) + len(test_dataset)} immagini")
 
     # DataLoaders
+    # DataLoaders con num_workers=0 per compatibilità ambienti/macOS
     train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, num_workers=2
+        train_dataset, batch_size=batch_size, shuffle=True, num_workers=0
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, num_workers=2
+        val_dataset, batch_size=batch_size, shuffle=False, num_workers=0
     )
     test_loader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=False, num_workers=2
+        test_dataset, batch_size=batch_size, shuffle=False, num_workers=0
     )
 
     print(f"📊 Dataset split:")
@@ -176,7 +183,7 @@ def my_dog_train():
         )
     model = model.to(device)
 
-    print(f"\n🔧 Modello binario:")
+    print(f"\n🔧 Modello binario:")  # Info modello utile per confronti
     total_params = sum(p.numel() for p in model.parameters())
     print(f"   Parametri: {total_params:,}")
     print(f"   Classi: 2 (il mio cane vs altri)")
@@ -196,24 +203,25 @@ def my_dog_train():
     print(f"\n🚀 INIZIO TRAINING BINARIO")
     print("=" * 50)
 
-    for epoch in range(num_epochs):
+    for epoch in range(num_epochs):  # Ciclo epoche completo
         current_lr = optimizer.param_groups[0]["lr"]
         print(f"\n📅 Epoch {epoch+1}/{num_epochs} - LR: {current_lr:.6f}")
 
         # Fase di training
-        model.train()
+        model.train()  # Attiva dropout e BN update
         train_loss = 0.0
         train_correct = 0
         train_total = 0
 
+        # Barra di progresso training (aggiorna loss/acc live per feedback immediato)
         pbar = tqdm(train_loader, desc="Allenamento", leave=False)
         for batch_idx, (data, target) in enumerate(pbar):
             data, target = data.to(device), target.to(device)
 
-            optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
-            loss.backward()
+            optimizer.zero_grad()  # Reset gradienti
+            output = model(data)  # Forward
+            loss = criterion(output, target)  # Loss
+            loss.backward()  # Backpropagation
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
@@ -231,16 +239,17 @@ def my_dog_train():
         avg_train_loss = train_loss / len(train_loader)
 
         # Fase di validazione
-        model.eval()
+        model.eval()  # Inference mode (no dropout/BN update)
         val_loss = 0.0
         val_correct = 0
         val_total = 0
 
         with torch.no_grad():
+            # Validazione: nessun gradiente, solo forward e metriche
             pbar = tqdm(val_loader, desc="Validazione", leave=False)
             for data, target in pbar:
                 data, target = data.to(device), target.to(device)
-                output = model(data)
+                output = model(data)  # Solo forward, no grad
                 loss = criterion(output, target)
 
                 val_loss += loss.item()
@@ -262,15 +271,16 @@ def my_dog_train():
         writer.add_scalar("accuracy/train", train_acc, epoch + 1)
         writer.add_scalar("accuracy/validation", val_acc, epoch + 1)
         writer.add_scalar("learning_rate", current_lr, epoch + 1)
+        # Tip: osserva la correlazione tra calo LR e miglioramento val_loss
 
-        # Learning rate scheduling
+        # Learning rate scheduling (ReduceLROnPlateau su val_loss)
         scheduler.step(avg_val_loss)
 
         print(f"📊 Epoch {epoch+1} Results:")
         print(f"   Train Loss: {avg_train_loss:.4f} | Train Acc: {train_acc:.2f}%")
         print(f"   Val Loss:   {avg_val_loss:.4f} | Val Acc:   {val_acc:.2f}%")
 
-        # Track best model
+        # Track best model (salva quando migliora la val acc)
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_epoch = epoch + 1
@@ -296,14 +306,14 @@ def my_dog_train():
             break
 
     # Final test evaluation
-    print(f"\n📊 FINAL TEST EVALUATION")
+    print(f"\n📊 FINAL TEST EVALUATION")  # Valutazione su test mai visto
     print("=" * 40)
 
     model.eval()
     test_correct = 0
     test_total = 0
 
-    with torch.no_grad():
+    with torch.no_grad():  # Test finale su split di test
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
@@ -323,20 +333,13 @@ def my_dog_train():
         },
     )
 
-    print(f"🎯 FINAL RESULTS:")
+    print(f"🎯 FINAL RESULTS:")  # Riepilogo finale
     print(f"   Best Val Acc: {best_val_acc:.2f}% (epoch {best_epoch})")
     print(f"   Test Acc: {test_acc:.2f}%")
     print(f"   Model saved: outputs/my_dog/best_model.pth")
     print(f"   TensorBoard: {tb_log_dir}")
 
     writer.close()
-
-    if test_acc >= 85:
-        print(f"\n🎉 EXCELLENT! Il modello riconosce bene il tuo cane!")
-    elif test_acc >= 70:
-        print(f"\n✅ GOOD! Performance accettabile, considera più dati di training")
-    else:
-        print(f"\n⚠️ NEEDS IMPROVEMENT! Aggiungi più immagini diverse per il training")
 
     return {
         "best_val_acc": best_val_acc,
@@ -347,6 +350,11 @@ def my_dog_train():
 
 
 if __name__ == "__main__":
-    results = my_dog_train()
+    parser = argparse.ArgumentParser(description="Training binario my dog vs others")
+    parser.add_argument("--epochs", type=int, help="Numero di epoche (default: 30)")
+    
+    args = parser.parse_args()
+    
+    results = my_dog_train(epochs_override=args.epochs)
     if results:
         print(f"\n🎯 Training Results: {results}")
