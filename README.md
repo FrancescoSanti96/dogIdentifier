@@ -14,7 +14,7 @@ conda env create -f environment.yml && conda activate dogidentifier
 
 ## 🚀 Quick Start
 
-````bash
+```bash
 # 1. Setup ambiente
 source .venv/bin/activate && pip install -r requirements.txt
 
@@ -36,8 +36,7 @@ python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoin
 # 📊 6. Visualizza risultati TensorBoard
 python scripts/launch_tensorboard.py          # Training razze
 python scripts/launch_tensorboard.py --mydog  # Training binario
-````
-
+```
 
 ## **Sistema di Predizione**
 
@@ -49,7 +48,7 @@ Il nostro `predict.py` è un sistema intelligente che **auto-detecta** il tipo d
 
 ```bash
 python predict.py <immagine> <modello> [opzioni]
-````
+```
 
 #### **🎯 Modalità di utilizzo:**
 
@@ -122,6 +121,7 @@ python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoin
 ```
 
 **Checkpoint automatici**:
+
 - **Best model**: Salvato quando validation accuracy migliora
 - **Intermediate**: Ogni 5 epoche (`checkpoint_epoch_5.pth`, `checkpoint_epoch_10.pth`, ...)
 - **Complete state**: Model + optimizer + scheduler + training progress preserved
@@ -157,6 +157,7 @@ python scripts/launch_tensorboard.py --mydog
 ```
 
 **Organizzazione TensorBoard:**
+
 - `outputs/tensorboard/breeds_*`: Training multiclass (5-121 razze)
 - `outputs/tensorboard/my_dog_training/`: Training binario "È MAGGIE?"
 - **Separazione netta** tra i due tipi per evitare confusione nei grafici
@@ -202,7 +203,7 @@ ResNet18(ImageNet) → freeze_backbone=True
 
 | **Architettura**          | **Parametri**          | **Utilizzo Principale**       | **Performance (5 razze)** | **Training Time** |
 | ------------------------- | ---------------------- | ----------------------------- | ------------------------- | ----------------- |
-| **BreedClassifier**       | 134M                   | FROM SCRATCH completo         | 20.95%                    | 2-3 ore           |
+| **BreedClassifier**       | 134M                   | FROM SCRATCH completo         | 21.90%                    | 2-3 ore           |
 | **SimpleBreedClassifier** | 3.3M                   | Training binario, test rapidi | 46.67%                    | 30-45 min         |
 | **Transfer Learning**     | 11.7M (~61K trainable) | Classificazione multiclass    | **98.1%**                 | 15-30 min         |
 

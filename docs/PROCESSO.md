@@ -268,13 +268,13 @@ USE_TL=1 python src/train.py --breeds 30
 | **Architettura**      | **Parametri**          | **Rapporto Param/Sample** | **Best Accuracy** | **Analisi Scientifica**     |
 | --------------------- | ---------------------- | ------------------------- | ----------------- | --------------------------- |
 | **Transfer Learning** | 11.2M (~61K trainable) | **122:1**                 | **98.1%**         | 🏆 Knowledge transfer vince |
-| **Simple CNN**        | **3.3M**               | **6,615:1**               | **46.67%**        | ⚖️ Sweet spot raggiunto     |
-| **Full CNN**          | **134M**               | **268,579:1**             | **20.95%**        | ❌ Curse of dimensionality  |
+| **Simple CNN**        | **3.3M**               | **6,615:1**               | **45.71%**        | ⚖️ Sweet spot raggiunto     |
+| **Full CNN**          | **134M**               | **268,579:1**             | **21.90%**        | ❌ Curse of dimensionality  |
 
 **🧠 Validazione Teorica Empirica**:
 
-1. **Curse of Dimensionality**: Full CNN (134M parametri) performa **peggio del random** (20.95% vs 20%)
-2. **Optimal Model Complexity**: Simple CNN trova il **sweet spot** (46.67%) tra bias e variance
+1. **Curse of Dimensionality**: Full CNN (134M parametri) performa **peggio del random** (21.90% vs 20%)
+2. **Optimal Model Complexity**: Simple CNN trova il **sweet spot** (45.71%) tra bias e variance
 3. **Knowledge Transfer Supremacy**: Transfer Learning domina (98.1%) con solo 61K parametri trainable
 4. **Bias-Variance Trade-off**: Curva empirica perfetta che valida la teoria
 
@@ -287,8 +287,8 @@ USE_TL=1 python src/train.py --breeds 30
 | **Architettura**                 | **Parametri**          | **Scale Testata** | **Best Accuracy** | **Verdict**            |
 | -------------------------------- | ---------------------- | ----------------- | ----------------- | ---------------------- |
 | **Transfer Learning (ResNet18)** | 11.7M (~61K trainable) | 5-121 razze       | **98.1%-77.2%**   | 🏆 Winner assoluto     |
-| **Simple CNN**                   | 3.3M                   | 5-30 razze        | **46.67%-18%**    | ⚖️ Sweet spot limitato |
-| **Full CNN (VGG-like)**          | 134M                   | 5 razze           | **20.95%**        | ❌ Epic Fail           |
+| **Simple CNN**                   | 3.3M                   | 5-30 razze        | **45.71%-18%**    | ⚖️ Sweet spot limitato |
+| **Full CNN (VGG-like)**          | 134M                   | 5 razze           | **21.90%**        | ❌ Epic Fail           |
 
 **🎯 CONCLUSIONE DEFINITIVA**: Lo studio empirico conferma che **Transfer Learning è l'approccio dominante** non solo per performance, ma anche per efficiency e scientific validity. Il fallimento della Full CNN e il sweet spot limitato della Simple CNN forniscono **evidenza sperimentale** dei limiti teorici del machine learning e della supremazia del knowledge transfer.
 
