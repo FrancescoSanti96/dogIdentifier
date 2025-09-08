@@ -205,6 +205,6 @@ ResNet18(ImageNet) → freeze_backbone=True
 | ------------------------- | ---------------------- | ----------------------------- | ------------------------- | ----------------- |
 | **BreedClassifier**       | 134M                   | FROM SCRATCH completo         | 21.90%                    | 2-3 ore           |
 | **SimpleBreedClassifier** | 3.3M                   | Training binario, test rapidi | 46.67%                    | 30-45 min         |
-| **Transfer Learning**     | 11.7M (~61K trainable) | Classificazione multiclass    | **98.1%**                 | 15-30 min         |
+| **Transfer Learning**     | 11.7M (~61K trainable) | Classificazione multiclass    | **99.05%**                | 15-30 min         |
 
 **Insight:** SimpleBreedClassifier trova il **sweet spot** per dataset piccoli, mentre Transfer Learning domina per performance.
