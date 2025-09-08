@@ -25,6 +25,7 @@ from utils.dataloader import MyDogDataset, get_transforms
 from models.breed_classifier import create_breed_classifier
 from utils.early_stopping import EarlyStopping
 from utils.seed_utils import set_deterministic
+from utils.config_helper import load_config
 from torch.utils.data import DataLoader
 
 
@@ -50,12 +51,18 @@ def log_hparams_final(writer, hparams, metrics):
         print(f"❌ Errore nel salvare hyperparameters: {e}")
 
 
-def my_dog_train(epochs_override=None):
+def my_dog_train(epochs_override=None, lr_override=None, dropout_override=None, 
+                 batch_size_override=None, weight_decay_override=None, config_name=None):
     """
     Esegue il training per la classificazione binaria "mio cane" vs "altri".
 
     Args:
         epochs_override (int | None): Numero epoche da usare al posto del default.
+        lr_override (float | None): Learning rate override.
+        dropout_override (float | None): Dropout rate override.
+        batch_size_override (int | None): Batch size override.
+        weight_decay_override (float | None): Weight decay override.
+        config_name (str | None): Nome configurazione dal config.json ('baseline', 'optimized', 'aggressive', 'final').
 
     Returns:
         dict: Risultati principali con chiavi `best_val_acc`, `test_acc`, `epochs`,
@@ -77,15 +84,32 @@ def my_dog_train(epochs_override=None):
     os.makedirs(tb_log_dir, exist_ok=True)
     writer = SummaryWriter(tb_log_dir)
     print(f"📊 TensorBoard logging: {tb_log_dir}")
-    # Avvia con: python scripts/launch_tensorboard.py (porta 6006)
+    # Avvia con: python scripts/launch_tensorboard.py --mydog (porta 6006)
 
-    # Configurazione ottimizzata da sperimentazione precedente
-    # Questi parametri hanno dato il miglior test accuracy: 71.4%
-    num_epochs = epochs_override if epochs_override is not None else 30  # CLI override o default
-    batch_size = 12  # Trovato ottimale per stabilità training
-    learning_rate = 0.0003  # Bilanciato: non troppo aggressivo
-    patience = 8  # Early stopping: abbastanza tempo per convergere
-    dropout_rate = 0.5  # Regolarizzazione efficace
+    # Carica configurazione dal config.json
+    config_helper = load_config("config.json")
+    
+    # Determina quale configurazione usare
+    if config_name:
+        binary_config = config_helper.get(f"training.binary.{config_name}", {})
+        if not binary_config:
+            print(f"⚠️ Configurazione '{config_name}' non trovata, uso 'default'")
+            binary_config = config_helper.get("training.binary.default", {})
+        else:
+            description = binary_config.get("description", "")
+            print(f"📋 CONFIGURAZIONE: {config_name.upper()}")
+            print(f"📄 {description}")
+    else:
+        binary_config = config_helper.get("training.binary.default", {})
+        print(f"📋 CONFIGURAZIONE: DEFAULT")
+
+    # Parametri con priorità: CLI override > config specifico > default
+    num_epochs = epochs_override if epochs_override is not None else binary_config.get('epochs', 30)
+    batch_size = batch_size_override if batch_size_override is not None else binary_config.get('batch_size', 12)
+    learning_rate = lr_override if lr_override is not None else binary_config.get('learning_rate', 0.0003)
+    dropout_rate = dropout_override if dropout_override is not None else binary_config.get('dropout', 0.5)
+    weight_decay = weight_decay_override if weight_decay_override is not None else binary_config.get('weight_decay', 0.0001)
+    patience = binary_config.get('early_stopping_patience', 8)
 
     print(f"\n⚙️ CONFIGURAZIONE:")
     print(f"   Epochs: {num_epochs}")
@@ -93,6 +117,7 @@ def my_dog_train(epochs_override=None):
     print(f"   Learning rate: {learning_rate}")
     print(f"   Patience: {patience}")
     print(f"   Dropout: {dropout_rate}")
+    print(f"   Weight decay: {weight_decay}")
 
     # Prepara hyperparameters per TensorBoard (tipi supportati: int/float/str)
     hparams = {
@@ -223,7 +248,7 @@ def my_dog_train(epochs_override=None):
 
     # Setup Training per Binary Classification
     criterion = nn.CrossEntropyLoss()  # Standard anche per binary (2 classi)
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=3  # Riduce LR più aggressivamente
     )
@@ -394,10 +419,22 @@ def my_dog_train(epochs_override=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training binario my dog vs others")
-    parser.add_argument("--epochs", type=int, help="Numero di epoche (default: 30)")
+    parser.add_argument("--profile", type=str, help="Profilo configurazione dal config.json ('binary_baseline', 'binary_optimized', 'binary_aggressive', 'binary_final')")
+    parser.add_argument("--epochs", type=int, help="Override numero di epoche")
+    parser.add_argument("--lr", type=float, help="Override learning rate")
+    parser.add_argument("--dropout", type=float, help="Override dropout rate")
+    parser.add_argument("--batch-size", type=int, help="Override batch size")
+    parser.add_argument("--weight-decay", type=float, help="Override weight decay")
     
     args = parser.parse_args()
     
-    results = my_dog_train(epochs_override=args.epochs)
+    results = my_dog_train(
+        epochs_override=args.epochs,
+        lr_override=args.lr,
+        dropout_override=args.dropout,
+        batch_size_override=args.batch_size,
+        weight_decay_override=args.weight_decay,
+        config_name=args.profile
+    )
     if results:
         print(f"\n🎯 Training Results: {results}")
