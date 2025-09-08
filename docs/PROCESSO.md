@@ -378,16 +378,17 @@ color_jitter = [0.05, 0.05, 0.0, 0.0]
 **Risultati Prima Prova**:
 | **Metrica** | **Valore** | **Analisi** |
 |-------------|------------|-------------|
-| **Best Val Acc** | **75.0%** | All'epoca 5 |
-| **Test Acc** | **59.5%** | Gap significativo |
-| **Training Acc** | **77.0%** | All'epoca finale |
-| **Overfitting Gap** | **17.5%** | Critico |
-| **Epoche Training** | 17 | Early stopping attivo |
+| **Best Val Acc** | **79.49%** | All'epoca 9 |
+| **Test Acc** | **65.85%** | Gap significativo |
+| **Training Acc** | **~84%** | All'epoca finale |
+| **Overfitting Gap** | **~14%** | Criticato
+| **Epoche Training** | ~20 | Early stopping attivo |
 
 **⚠️ Problemi Identificati**:
 
-1. **Overfitting**: Gap 17.5% train-test
-2. **Generalizzazione scarsa**: Val 75% → Test 59.5%
+1. **Overfitting ridotto**: Gap 14% train-test 
+2. **Generalizzazione migliorata**: Val 79.49% → Test 65.85% 
+
 3. **Dataset limitato**: Solo 189 immagini training
 
 ### **11.3 Training Binario - Ottimizzazioni**
@@ -474,9 +475,9 @@ dropout_rate = 0.6        # Dropout massimo
 **Tabella Riassuntiva**:
 | **Metrica** | **Prima (Baseline)** | **Seconda (Ottimizzata)** | **Terza (Ultra-Aug)** | **Vincitore** |
 |-------------|----------------------|----------------------------|--------------------|---------------|
-| **Best Val Acc** | 75.0% | 80.0% | **90.0%** | 🥇 **Terza** |
-| **Test Acc** | 59.5% | **71.4%** | 69.1% | 🥇 **Seconda** |
-| **Overfitting Gap** | 17.5% | **8.6%** | 14.9% | 🥇 **Seconda** |
+| **Best Val Acc** | **79.49%** | 80.0% | **90.0%** | 🥇 **Terza** |
+| **Test Acc** | **65.85%** | **71.4%** | 69.1% | 🥇 **Seconda** |
+| **Overfitting Gap** | **14%** | **8.6%** | 14.9% | 🥇 **Seconda** |
 | **Convergenza** | Instabile | Stabile | Molto lunga | 🥇 **Seconda** |
 
 **🧠 Insights Fondamentali**:
@@ -573,7 +574,7 @@ augmentation_config = {
 **Tabella Comparativa Completa**:
 | **Prova** | **Dataset Size** | **Best Val** | **Test Acc** | **Gap** | **Status** |
 |-----------|------------------|--------------|--------------|---------|-------------|
-| **1. Baseline** | 269 img | 75.0% | 59.5% | 17.5% | ❌ Overfitting |
+| **1. Baseline** | 261 img | **79.49%** | **65.85%** | **14%** | ❌ Overfitting |
 | **2. Ottimizzata** | 269 img | 80.0% | **71.4%** | 8.6% | 🏆 **Sweet Spot** |
 | **3. Ultra-Aug** | 269 img | **90.0%** | 69.1% | 14.9% | ⚠️ Val Overfitting |
 | **4. Dataset Esteso** | 346 img | 80.4% | **71.7%** | 9.9% | ✅ **Robusta** |
