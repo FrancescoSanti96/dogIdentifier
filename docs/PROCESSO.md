@@ -316,7 +316,7 @@ USE_TL=1 python src/train.py --breeds 30
 | **30 razze**  | 3,000 / 630 / 690      | 20         | **89.8%**        | **89.7%**         | **100.0%** 🎯           | `outputs/breeds_30/best_model.pth`  |
 | **60 razze**  | 6,000 / 1,260 / 1,380  | 30         | **85.3%**        | **85.0%**         | **100.0%** 🎯           | `outputs/breeds_60/best_model.pth`  |
 | **90 razze**  | 9,000 / 1,890 / 2,070  | 30         | **81.4%**        | **81.4%**         | **91.3%** ⭐            | `outputs/breeds_90/best_model.pth`  |
-| **121 razze** | 12,100 / 2,541 / 2,783 | 45         | **78.8%**        | **77.2%**         | **100.0%** 🎯           | `outputs/breeds_121/best_model.pth` |
+| **121 razze** | 12,100 / 2,541 / 2,783 | 45         | **76.47%**       | **77.2%**         | **100.0%** 🎯           | `outputs/breeds_121/best_model.pth` |
 
 - **Report completi**: Confusion matrices e metriche per classe in `outputs/analysis/`
 
