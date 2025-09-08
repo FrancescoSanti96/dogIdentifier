@@ -3,5 +3,5 @@ Baseline,5,66.2,64.0,95.0,20,15,breeds_5_best.pth,Complete
 Small,10,75.0,72.0,97.0,15,12,breeds_10_best.pth,Complete
 Medium,30,78.0,76.0,97.0,20,16,breeds_30_best.pth,Complete
 Large,60,79.0,77.0,97.0,30,24,breeds_60_best.pth,Complete
-XL,90,81.4,79.0,98.0,30,26,breeds_90_best.pth,Complete
+XL,90,80.05,79.0,98.0,30,26,breeds_90_best.pth,Complete
 Full,121,78.83,77.2,97.0,45,38,breeds_121_best.pth,Complete
