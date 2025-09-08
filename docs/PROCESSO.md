@@ -312,9 +312,9 @@ USE_TL=1 python src/train.py --breeds 30
 | **Scale**     | **Train/Val/Test**     | **Epoche** | **Val Accuracy** | **Test Accuracy** | **Australian Shepherd** | **Checkpoint**                      |
 | ------------- | ---------------------- | ---------- | ---------------- | ----------------- | ----------------------- | ----------------------------------- |
 | **5 razze**   | 616 / 129 / 139        | 6          | **98.1%**        | **95.2%** ✓       | **100.0%** 🎯           | `outputs/breeds_5/best_model.pth`   |
-| **10 razze**  | 1,159 / 243 / 260      | 15         | **97.9%**        | **97.0%** ✓       | **100.0%** 🎯           | `outputs/breeds_10/best_model.pth`  |
-| **30 razze**  | 3,000 / 630 / 690      | 20         | **89.8%**        | **89.7%**         | **100.0%** 🎯           | `outputs/breeds_30/best_model.pth`  |
-| **60 razze**  | 6,000 / 1,260 / 1,380  | 30         | **83.81%**        | **85.0%**         | **100.0%** 🎯           | `outputs/breeds_60/best_model.pth`  |
+| **10 razze**  | 1,159 / 243 / 260      | 15         | **93.65%**       | **97.0%** ✓       | **100.0%** 🎯           | `outputs/breeds_10/best_model.pth`  |
+| **30 razze**  | 3,000 / 630 / 690      | 20         | **90.95%**       | **89.7%**         | **100.0%** 🎯           | `outputs/breeds_30/best_model.pth`  |
+| **60 razze**  | 6,000 / 1,260 / 1,380  | 30         | **83.81%**       | **85.0%**         | **100.0%** 🎯           | `outputs/breeds_60/best_model.pth`  |
 | **90 razze**  | 9,000 / 1,890 / 2,070  | 30         | **80.5%**        | **80.5%**         | **91.3%** ⭐            | `outputs/breeds_90/best_model.pth`  |
 | **121 razze** | 12,100 / 2,541 / 2,783 | 45         | **76.47%**       | **77.2%**         | **100.0%** 🎯           | `outputs/breeds_121/best_model.pth` |
 
