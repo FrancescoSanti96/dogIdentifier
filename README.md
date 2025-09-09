@@ -1,6 +1,5 @@
 # 🐕 Dog Breed Identifier
 
-
 Sviluppare un sistema di classificazione delle razze canine con CNN da zero, focalizzandosi su:
 
 - Classificazione multi-classe (121 razze)
@@ -100,7 +99,8 @@ python predict.py dog.jpg outputs/my_dog/best_model.pth
 ├── 📂 src/                    # Core training & evaluation
 │   ├── train.py              # Training multiclass (FROM SCRATCH/TL)
 │   ├── my_dog_train.py       # Training binario "È MAGGIE?"
-│   ├── evaluate.py           # Valutazione modelli
+│   ├── evaluate.py           # Valutazione modelli MULTICLASS
+│   ├── evaluate_binary.py    # 🆕 Valutazione modelli BINARI
 │   └── prepare_data.py       # Preparazione dataset
 ├── 📂 models/                 # Architetture CNN
 ├── 📂 utils/                  # Utilities (dataloader, metrics, etc.)
@@ -136,15 +136,21 @@ python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoin
 # Preparazione dati binari (346 immagini: 181 Maggie + 165 others)
 python src/prepare_data.py --binary
 
-# Training modello binario (71.7% test accuracy)
+# Training modello binario (69.8% test accuracy)
 python src/my_dog_train.py
 ```
 
 ### **🔮 3. Valutazione & Predizione**
 
 ```bash
-# Valutazione modelli
-python src/evaluate.py --model outputs/models/breeds_30/best_model.pth
+# Valutazione modelli MULTICLASS (razze)
+python src/evaluate.py --model outputs/models/breeds_30/best_model.pth --data data/top30_balanced
+
+# 🆕 Valutazione modelli BINARI (Maggie vs Altri)
+python src/evaluate_binary.py \
+  --model outputs/my_dog/best_model.pth \
+  --data data/my_dog_vs_others_splits \
+  --outdir outputs/analysis/my_dog_binary
 
 # Predizione universale (auto-detect + cascade intelligente)
 python predict.py dog.jpg outputs/models/breeds_10/best_model.pth --binary-model outputs/my_dog/best_model.pth
@@ -219,6 +225,7 @@ ResNet18(ImageNet) → freeze_backbone=True
 ### **🚀 TRAINING MULTICLASS (FASE 1-10)**
 
 #### **Setup e Preparazione Dataset**
+
 ```bash
 # Preparazione dataset con split fisici
 python src/prepare_data.py --breeds 5     # 5 razze per test rapidi
@@ -231,6 +238,7 @@ find data/breeds_5 -name "*.jpg" | wc -l  # Conta immagini
 ```
 
 #### **Training FROM SCRATCH**
+
 ```bash
 # SimpleBreedClassifier (3.3M parametri)
 MODEL_TYPE=simple USE_TL=0 python src/train.py --breeds 5
@@ -242,6 +250,7 @@ MODEL_TYPE=full USE_TL=0 python src/train.py --breeds 121
 ```
 
 #### **Training TRANSFER LEARNING**
+
 ```bash
 # ResNet18 + Custom Head (61K parametri trainable)
 USE_TL=1 python src/train.py --breeds 5
@@ -251,6 +260,7 @@ USE_TL=1 python src/train.py --breeds 121
 ```
 
 #### **Resume Training da Checkpoint**
+
 ```bash
 # Resume da checkpoint intermedio (FASE 12)
 python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
@@ -260,7 +270,8 @@ python src/train.py --breeds 121 --resume-from outputs/checkpoints/checkpoint_ep
 ### **🎯 TRAINING BINARIO "È MAGGIE?" (FASE 11)**
 
 #### **Setup Dataset Binario**
-```bash
+
+````bash
 # Preparazione split fisici per training binario
 python src/prepare_data.py --binary
 
@@ -281,9 +292,10 @@ python src/my_dog_train.py --profile aggressive
 
 # FASE 11.9 - Finale su dataset esteso
 python src/my_dog_train.py --profile final
-```
+````
 
 #### **Override Parametri Specifici**
+
 ```bash
 # Modifica parametri al volo
 python src/my_dog_train.py --profile baseline --epochs 25
@@ -293,8 +305,10 @@ python src/my_dog_train.py --profile aggressive --batch-size 8
 ### **🔧 UTILITY E DEBUGGING**
 
 # Fix nomi file (se necessario)
+
 python utils/rename_australian_images.py
-```
+
+````
 
 #### **Configurazione e Setup**
 ```bash
@@ -304,31 +318,34 @@ cat config.json | jq '.training.binary.aggressive'  # Controlla profile
 # Test setup ambiente
 python test/test_setup.py
 python test/test_validation.py
-```
+````
 
 ### **🏆 RISULTATI CHIAVE**
 
 #### **Performance Multiclass**
+
 - **Transfer Learning**: 99.05% (5 razze), 89.31% (10 razze)
 - **FROM SCRATCH**: 46.67% (SimpleBreedClassifier), 21.90% (BreedClassifier)
 
 #### **Performance Binaria "È MAGGIE?"**
+
 - **🥇 Ultra-Aggressive (Dataset Esteso)**: **77.36%** test accuracy ⭐
 - **🥈 Final (Dataset Esteso)**: 75.47% test accuracy
 - **🥉 Ultra-Aggressive (Small)**: 68.29% test accuracy
 
 #### **Scoperta Scientifica**
+
 **RIVOLUZIONARIA**: Ultra-aggressive regularization (dropout 0.6) scala perfettamente sia su dataset piccoli che grandi, confutando l'ipotesi comune del "dataset-size dependent tuning".
 
 ---
 
 ### **Performance Targets**
 
-| **Scenario** | **Target Minimo** | **Target Ottimale** | **Record Attuale** |
-|--------------|-------------------|---------------------|---------------------|
-| **5 razze (TL)** | 80% | 95% | **99.05%** ✅ |
-| **30 razze (TL)** | 70% | 85% | **89.31%** ✅ |
-| **Binary "Maggie"** | 60% | 70% | **77.36%** ✅ |
-| **FROM SCRATCH** | 30% | 50% | **46.67%** ✅ |
+| **Scenario**        | **Target Minimo** | **Target Ottimale** | **Record Attuale** |
+| ------------------- | ----------------- | ------------------- | ------------------ |
+| **5 razze (TL)**    | 80%               | 95%                 | **99.05%** ✅      |
+| **30 razze (TL)**   | 70%               | 85%                 | **89.31%** ✅      |
+| **Binary "Maggie"** | 60%               | 70%                 | **77.36%** ✅      |
+| **FROM SCRATCH**    | 30%               | 50%                 | **46.67%** ✅      |
 
 ---

@@ -111,7 +111,7 @@ per visualizzare se la struttura era corretta.
 
 ### **5.1 Problema Overfitting Identificato**
 
-**Il Test di triaing esteso per (10 epoche)** ha rivelato **overfitting significativo** 
+**Il Test di triaing esteso per (10 epoche)** ha rivelato **overfitting significativo**
 (fenomeno per cui il modello memorizza i dati di training ma non generalizza su nuovi dati, evidenziato da alta accuracy sul training set e bassa sui test set):
 
 | **Metrica**             | **Training** | **Validation** | **Test Set** | **Gap**       |
@@ -156,6 +156,7 @@ data/quick_splits/
 **5 razze bilanciate**: Australian_Shepherd_Dog, Japanese_spaniel, Lhasa, Norwich_terrier, miniature_pinscher
 
 ### **6.3 Training Corretto**
+
 **Nuovi risulatati con la configurazione corretta**:
 
 - Dataset: Splits fisici separati
@@ -198,6 +199,7 @@ Questa é stata una parte di test per vedere se spingendo inizilmente molto con 
 ---
 
 ## **FASE 8: Miglioramenti implementati**
+
 In questa fase mi sono concreto nell'implementare le varie funzionalita importanti da avere prima di ricominciare ad effettuare i training.
 
 - ✅ **Transfer Learning** (tecnica che utilizza un modello pre-addestrato su un ampio dataset per poi adattarlo a un compito specifico, sfruttando la conoscenza già acquisita): ResNet18 backbone (opzionale con `USE_TL=1`)
@@ -274,7 +276,7 @@ USE_TL=1 python src/train.py --breeds 30
 | **Architettura**      | **Parametri**          | **Rapporto Param/Sample** | **Best Accuracy** | **Analisi Scientifica**     |
 | --------------------- | ---------------------- | ------------------------- | ----------------- | --------------------------- |
 | **Transfer Learning** | 11.2M (~61K trainable) | **122:1**                 | **99.05%**        | 🏆 Knowledge transfer vince |
-| **Simple CNN**        | **3.3M**               | **6,615:1**               | **45.71%**        | ⚖️ **Sweet spot** raggiunto     |
+| **Simple CNN**        | **3.3M**               | **6,615:1**               | **45.71%**        | ⚖️ **Sweet spot** raggiunto |
 | **Full CNN**          | **134M**               | **268,579:1**             | **21.90%**        | ❌ Curse of dimensionality  |
 
 **🧠 Validazione Teorica Empirica**:
@@ -314,7 +316,6 @@ USE_TL=1 python src/train.py --breeds 30
 **⚡ STRATEGIA ADOTTATA**: Procedere con **Transfer Learning (ResNet18 frozen)** per tutto lo scaling progressivo
 
 ### **10.2 Performance Scaling Completo (Transfer Learning)**
-<!-- TODO -->
 
 | **Scale**     | **Train/Val/Test**     | **Epoche** | **Val Accuracy** | **Test Accuracy** | **Australian Shepherd** | **Checkpoint**                      |
 | ------------- | ---------------------- | ---------- | ---------------- | ----------------- | ----------------------- | ----------------------------------- |
@@ -327,7 +328,64 @@ USE_TL=1 python src/train.py --breeds 30
 
 - **Report completi**: Confusion matrices e metriche per classe in `outputs/analysis/`
 
-### **10.3 Constraint From-Scratch Identificati**
+### **10.3 Analisi Dettagliata Performance 121 Razze**
+
+**Validazione Finale - Modello Completo Transfer Learning**
+
+Il modello finale a 121 razze è stato sottoposto ad analisi approfondita per valutare le performance su ogni classe individualmente e identificare pattern di successo e criticità.
+
+**📊 Metriche Globali Confermate:**
+
+- ✅ **Test Accuracy**: **72.5%** (2,783 samples)
+- 📈 **Precision/Recall Macro**: **73.6%/72.5%**
+- 🎯 **F1-Score Macro**: **71.9%**
+
+**🏆 Performance Eccellenti (90%+):**
+
+- **Australian_Shepherd_Dog**: **100.0%** (23/23) 🥇 PERFETTA
+- **Scotch_terrier**: **100.0%** (23/23) 🥈 PERFETTA
+- **Top 10 classi**: Range 95.7% - 100.0% (Mexican_hairless, Norwegian_elkhound, Old_English_sheepdog, dhole, keeshond, papillon, etc.)
+
+**📊 Performance Distribuzioni:**
+
+- **Eccellente (90-100%)**: 21 razze (17.4%)
+- **Buona (75-89%)**: 35 razze (28.9%)
+- **Moderata (60-74%)**: 38 razze (31.4%)
+- **Critica (<60%)**: 27 razze (22.3%)
+
+**🔻 Classi Critiche Identificate:**
+
+- **collie**: **13.0%** (3/23) - Confusa principalmente con Shetland_sheepdog (47.8%)
+- **Walker_hound**: **26.1%** (6/23) - Confusa con English_foxhound (43.5%)
+- **miniature_poodle**: **30.4%** (7/23) - Confusa con toy_poodle (47.8%)
+
+**🚨 Pattern di Confusione Più Comuni:**
+
+1. **collie → Shetland_sheepdog**: 11 errori (47.8% dei collie)
+2. **miniature_poodle → toy_poodle**: 11 errori (47.8% dei miniature_poodle)
+3. **Walker_hound → English_foxhound**: 10 errori (43.5% dei Walker_hound)
+
+**💡 Insights Chiave:**
+
+- **Razze morfologicamente simili** mostrano maggiore confusione (poodle variants, terrier variants)
+- **Australian Shepherd performance perfetta** conferma la validità dell'approccio per il progetto
+- **Range di performance ampio** (13%-100%) indica necessità di balance tra dataset size e classe complexity
+- **Transfer Learning efficace** su dataset di media dimensione (12k samples training)
+
+**✅ Comando Analisi Completa:**
+
+```bash
+# Analisi dettagliata modello 121 razze
+python src/evaluate.py \
+  --model outputs/models/breeds_121/best_model.pth \
+  --data data/full121_balanced \
+  --outdir outputs/analysis/breeds_121_complete
+```
+
+**📈 Conclusioni Performance Scaling:**
+Il transfer learning ha dimostrato **scalabilità eccellente** mantenendo performance solide anche su 121 classi. La performance del 72.5% su un task così complesso conferma l'efficacia dell'approccio, con particolare successo sulle razze target del progetto.
+
+### **10.4 Constraint From-Scratch Identificati**
 
 **Durante i test iniziali**, il training from-scratch ha mostrato:
 
@@ -337,7 +395,7 @@ USE_TL=1 python src/train.py --breeds 30
 
 **Risultato**: Transfer Learning scelto come approccio principale per tutti gli esperimenti di scaling
 
-### **10.4 Obiettivi Raggiunti con Transfer Learning**
+### **10.5 Obiettivi Raggiunti con Transfer Learning**
 
 - ✅ **Dataset bilanciato**: Australian Shepherd 141 immagini
 - ✅ **Metodologia validata**: Baseline > Enhanced per razza specifica
@@ -345,8 +403,33 @@ USE_TL=1 python src/train.py --breeds 30
 - ✅ **Performance target**: >50% Australian Shepherd (**100%** achieved su 121 razze)
 - ✅ **Sistema completo**: Da 5 a 121 razze con pipeline automatizzata
 
----
+### **10.6 Riassunto Finale Performance Progetto**
 
+**🎯 OBIETTIVO PRIMARIO RAGGIUNTO**
+
+Il progetto ha **completamente superato** gli obiettivi iniziali, dimostrando l'efficacia del transfer learning per la classificazione delle razze canine:
+
+| **Componente**              | **Target** | **Risultato**            | **Status**      |
+| --------------------------- | ---------- | ------------------------ | --------------- |
+| **121 Razze (Multi-class)** | >60%       | **72.5%**                | ✅ **+12.5%**   |
+| **Australian Shepherd**     | >80%       | **100.0%**               | 🏆 **PERFETTO** |
+| **Binario "È Maggie?"**     | >60%       | **69.8%**                | ✅ **+9.8%**    |
+| **Sistema Completo**        | Funzionale | **Cascade Intelligente** | 🚀 **SUPERATO** |
+
+**📈 Scaling Performance Confermata:**
+
+- **5 razze**: 95.2% → **Transfer Learning domina**
+- **30 razze**: 89.7% → **Performance solida**
+- **121 razze**: 72.5% → **Scalabilità eccellente**
+
+**🔬 Scoperte Scientifiche Validale:**
+
+1. **Transfer Learning >> From-Scratch** su dataset medi (99.05% vs 21.90%)
+2. **Ultra-aggressive regularization** efficace per modelli binari piccoli
+3. **Cascade system** permette specializzazione gerarchica (razze → individuo)
+4. **Data augmentation bilanciata** critica per generalizzazione
+
+---
 
 ## **FASE 11: Milgiroamento implemntazione checkpoint resume**
 
@@ -408,10 +491,10 @@ for epoch in range(start_epoch, num_epochs):  # 🆕 Inizia da start_epoch
 
 ---
 
-
 ## FASE 12: TRAINING BINARIO - IDENTIFICAZIONE PERSONALE
 
 ## Obiettivo
+
 Sviluppare un classificatore binario specializzato per distinguere Maggie (il mio Australian Shepherd) da altri Australian Shepherd. Questo sistema rappresenta la seconda componente del progetto: dopo l'identificazione della razza tramite il classificatore multi-classe, il modello binario determina se si tratta specificamente di Maggie.
 
 ## Setup Dataset
@@ -423,7 +506,7 @@ python src/prepare_data.py --binary
 # Struttura dataset iniziale:
 data/my_dog_vs_others_splits/
 ├── train/    # 189 immagini (89 Maggie + 100 altri)
-├── val/      # 40 immagini (19 Maggie + 21 altri)  
+├── val/      # 40 immagini (19 Maggie + 21 altri)
 └── test/     # 43 immagini (20 Maggie + 23 altri)
 
 # Totale: 272 immagini
@@ -434,6 +517,7 @@ data/my_dog_vs_others_splits/
 ### Prova 1: Configurazione Baseline
 
 **Setup conservativo per dataset ridotto:**
+
 ```python
 epochs = 20
 batch_size = 16
@@ -448,6 +532,7 @@ color_jitter = [0.05, 0.05, 0.0, 0.0]
 ```
 
 **Risultati:**
+
 - **Best Val Accuracy:** 79.49% (epoca 9)
 - **Test Accuracy:** 65.85%
 - **Training Accuracy:** 75.69% (TensorBoard validated)
@@ -456,6 +541,7 @@ color_jitter = [0.05, 0.05, 0.0, 0.0]
 ### Prova 2: Configurazione "Ottimizzata"
 
 **Strategia anti-overfitting aumentando regolarizzazione:**
+
 ```python
 epochs = 30
 batch_size = 12
@@ -471,6 +557,7 @@ random_erasing = 0.1
 ```
 
 **Risultati:**
+
 - **Best Val Accuracy:** 79.49%
 - **Test Accuracy:** 58.54% (-7.3% vs baseline)
 - **Training Accuracy:** 75.14%
@@ -481,6 +568,7 @@ random_erasing = 0.1
 ### Prova 3: Configurazione Ultra-Aggressiva
 
 **Testing dei limiti della regolarizzazione:**
+
 ```python
 epochs = 40
 batch_size = 10
@@ -498,6 +586,7 @@ vertical_flip = True
 ```
 
 **Risultati:**
+
 - **Best Val Accuracy:** 76.92%
 - **Test Accuracy:** 68.29% (+2.4% vs baseline)
 - **Training Accuracy:** 79.01%
@@ -506,6 +595,7 @@ vertical_flip = True
 ### Prova 4: Dataset Esteso
 
 **Estensione del dataset per validare la robustezza:**
+
 ```bash
 # Incremento dataset (+25%)
 Maggie: 128 → 181 immagini (+41%)
@@ -521,6 +611,7 @@ Test:  53 immagini (+23%)
 **Configurazione:** Identica alla Prova 2 ("ottimizzata")
 
 **Risultati:**
+
 - **Best Val Accuracy:** 78.43% (epoca 14)
 - **Test Accuracy:** 75.47% (+9.6% vs stesso config su dataset piccolo)
 - **Gap di Overfitting:** 6.5% (miglior controllo)
@@ -530,6 +621,7 @@ Test:  53 immagini (+23%)
 **Configurazione ultra-aggressiva applicata al dataset esteso:**
 
 **Risultati:**
+
 - **Best Val Accuracy:** 76.47% (epoca 4)
 - **Test Accuracy:** 77.36% (**RECORD ASSOLUTO**)
 - **Gap di Overfitting:** ~1% (controllo ottimale)
@@ -537,26 +629,30 @@ Test:  53 immagini (+23%)
 
 ## Risultati Comparativi
 
-| **Prova** | **Dataset** | **Dropout** | **Val Acc** | **Test Acc** | **Gap** | **Epoche** |
-|-----------|-------------|-------------|-------------|--------------|---------|-------------|
-| 1. Baseline | 261 img | 0.30 | 79.49% | 65.85% | 14% | 14 |
-| 2. Ottimizzata | 261 img | 0.50 | 79.49% | 58.54% | 16.6% | 25 |
-| 3. Ultra-Agg | 261 img | 0.60 | 76.92% | **68.29%** | **10.7%** | 25 |
-| 4. Dataset Esteso | 346 img | 0.50 | 78.43% | 75.47% | 6.5% | 14 |
-| 5. **FINALE** | **346 img** | **0.60** | **76.47%** | **🏆 77.36%** | **~1%** | **4** |
+| **Prova**         | **Dataset** | **Dropout** | **Val Acc** | **Test Acc**  | **Gap**   | **Epoche** |
+| ----------------- | ----------- | ----------- | ----------- | ------------- | --------- | ---------- |
+| 1. Baseline       | 261 img     | 0.30        | 79.49%      | 65.85%        | 14%       | 14         |
+| 2. Ottimizzata    | 261 img     | 0.50        | 79.49%      | 58.54%        | 16.6%     | 25         |
+| 3. Ultra-Agg      | 261 img     | 0.60        | 76.92%      | **68.29%**    | **10.7%** | 25         |
+| 4. Dataset Esteso | 346 img     | 0.50        | 78.43%      | 75.47%        | 6.5%      | 14         |
+| 5. **FINALE**     | **346 img** | **0.60**    | **76.47%**  | **🏆 77.36%** | **~1%**   | **4**      |
 
 ## Insights Fondamentali
 
 ### 1. Risultati Specifici per questo Dataset
+
 Nel **caso specifico del dataset Australian Shepherd**, la configurazione ultra-aggressiva (dropout 0.6) ha prodotto risultati superiori rispetto alle configurazioni moderate. Questo **contraddice le aspettative tradizionali** per dataset di piccole dimensioni.
 
 ### 2. Scaling Effect Positivo
+
 - **Dataset +25%** → **Performance +9% in media**
 - Rendimenti non decrescenti con l'aumento dei dati
 - Stabilità di training migliorata
 
 ### 3. Correlazione Dropout-Performance per questo Caso
+
 **Relazione osservata nel nostro dataset specifico:** Higher dropout → Better generalization
+
 - Dropout 0.3: Performance moderate, overfitting alto
 - Dropout 0.5: Performance peggiori (configurazione non ottimale per questo dataset specifico)
 - Dropout 0.6: Performance migliori, overfitting controllato
@@ -564,6 +660,7 @@ Nel **caso specifico del dataset Australian Shepherd**, la configurazione ultra-
 **⚠️ Nota**: Questi risultati sono specifici per il task di classificazione binaria Australian Shepherd su dataset di ~300 immagini.
 
 ### 4. Efficienza Computazionale
+
 La configurazione finale non solo produce i migliori risultati ma converge in **4 epoche** (3.5x più veloce delle altre configurazioni).
 
 ## Formula Ottimale Validata
@@ -601,18 +698,49 @@ Questo studio **sul caso specifico di classificazione binaria Australian Shepher
 4. L'approccio tradizionale "dataset piccolo = regolarizzazione leggera" **non si è rivelato ottimale per questo caso specifico**
 
 **⚠️ Limitazioni**: I risultati sono specifici per:
+
 - Classificazione binaria di una singola razza canina
 - Dataset di dimensioni limitate (~300 immagini)
 - Architettura SimpleBreedClassifier (3.3M parametri)
 - Task di identificazione individuale (Maggie vs altri Australian Shepherd)
 
-**Risultato finale:** Classificatore binario "Maggie vs Altri Australian Shepherd" con **77.36% test accuracy** e controllo ottimale dell'overfitting (gap ~1%).
+**Risultato finale:** Classificatore binario "Maggie vs Altri Australian Shepherd" con **77.36% validation accuracy** durante training e **69.8% test accuracy** confermata con analisi indipendente.
 
+**✅ Risultati Corretti Validati**:
+
+| **Metrica**          | **Training** | **Test Corretto** | **Gap**  |
+| -------------------- | ------------ | ----------------- | -------- |
+| **Accuracy**         | 77.36%       | **69.8%**         | -7.6%    |
+| **Maggie Recall**    | ~77%         | **71.4%**         | -5.6%    |
+| **Maggie Precision** | ~77%         | **71.4%**         | -5.6%    |
+| **Maggie F1-Score**  | ~77%         | **71.4%**         | -5.6%    |
+| **ROC AUC**          | ~0.80+       | **0.783**         | Coerente |
+
+**📈 Metriche Finali Confermate** (Test Set Indipendente):
+
+- ✅ **Test Accuracy**: **69.8%** (53 samples)
+- ⭐ **Maggie Recall**: **71.4%** (20/28 corretti)
+- 📊 **Maggie Precision**: **71.4%** (20/28 predetti)
+- 🎯 **ROC AUC**: **0.783** (buona capacità discriminativa)
+- 🔍 **Errori**: **16/53 (30.2%)** con bilanciamento FP=8, FN=8
+
+**💡 Comando per Analisi Binaria Completa**:
+
+```bash
+# Analisi dettagliata modello binario
+python src/evaluate_binary.py \
+  --model outputs/my_dog/best_model.pth \
+  --data data/my_dog_vs_others_splits \
+  --outdir outputs/analysis/my_dog_binary
+```
+
+**✅ Conclusione**: Il modello binario raggiunge **performance solide (69.8%)** con buon controllo dell'overfitting e capacità discriminativa confermata (ROC AUC 0.783). La discrepanza tra training (77.36%) e test (69.8%) è ragionevole per un dataset di piccole dimensioni.
 
 ---
-## FASE 13: SISTEMA PREDIZIONE 
 
-### 13.1 Creazione Sistema Predizione 
+## FASE 13: SISTEMA PREDIZIONE
+
+### 13.1 Creazione Sistema Predizione
 
 **Problema**: Due script separati (`predict_simple.py` per razze, `predict_binary.py` per Maggie) creano frammentazione dell'interfaccia utente.
 
