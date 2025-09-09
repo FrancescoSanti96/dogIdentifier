@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """
-Training unificato per classificazione razze canine con TensorBoard
-
-Questo script implementa il cuore del progetto Dog Breed Identifier, con supporto
-per training progressivo scalabile da 5 a 121 razze canine.
+Training unificato per classificazione razze canine con TensorBoard, con supporto per training progressivo scalabile da 5 a 121 razze canine.
 
 CARATTERISTICHE PRINCIPALI:
 -  CNN from-scratch personalizzata (134M parametri)
--  Transfer Learning opzionale (ResNet18) - PER CONFRONTO SCIENTIFICO
+-  Transfer Learning opzionale (ResNet18) 
 -  CHECKPOINT RESUME: Riprendi training da qualsiasi punto intermedio
 -  Scaling progressivo validato: 5→10→30→60→90→121 razze
 -  Configurazioni ottimizzate per ogni scala
@@ -19,39 +16,6 @@ ARCHITETTURE SUPPORTATE:
 1. FROM SCRATCH - BreedClassifier (full): 134M parametri, VGG-like personalizzata
 2. FROM SCRATCH - SimpleBreedClassifier: 3.3M parametri, per test rapidi
 3. TRANSFER LEARNING - ResNet18: backbone congelato, solo classificatore trainable
-
-METODOLOGIA SCIENTIFICA:
-- Confronto rigoroso FROM SCRATCH vs TRANSFER LEARNING
-- Early stopping per prevenire overfitting
-- Data augmentation con RandomResizedCrop + WeightedSampler
-- Label smoothing e gradient clipping per stabilità
-- Metriche multiple: Accuracy, Top-5, per-class analysis
-
-Usage:
-    # Training from scratch (quello che vuole il professore)
-    python src/train.py --breeds 30
-
-    # Resume training da checkpoint intermedio (NUOVO!)
-    python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoint_epoch_15.pth
-
-    # Transfer learning (per confronto scientifico)
-    USE_TL=1 python src/train.py --breeds 30
-
-    # Architettura completa 134M parametri
-    MODEL_TYPE=full USE_TL=0 python src/train.py --breeds 121
-
-    # Test rapido con architettura semplice
-    MODEL_TYPE=simple python src/train.py --breeds 5
-
-Variabili d'ambiente (per switching rapido):
-    USE_TL=1          # Transfer Learning (predefinito: 1 per efficienza)
-    MODEL_TYPE=full   # Architettura modello: 'full' o 'simple' (predefinito: full)
-    EPOCHS=45         # Numero di epoche (predefinito: automatico per scala)
-    BATCH_SIZE=32     # Dimensione batch (predefinito: 32)
-    LR=0.0008         # Learning rate (predefinito: automatico per scala)
-    PATIENCE=10       # Pazienza early stopping (predefinito: automatico per scala)
-    DROPOUT=0.4       # Tasso di dropout (predefinito: 0.4)
-    WD=5e-4           # Weight decay (predefinito: 5e-4)
 
 Output:
     - outputs/models/breeds_{N}/best_model.pth: Miglior modello
@@ -80,9 +44,6 @@ from utils.seed_utils import set_deterministic
 
 
 # Configurazioni ottimali per ogni scala di razze
-# Questi parametri sono stati calibrati sperimentalmente per ottenere
-# un buon trade-off tra accuratezza e tempo di addestramento per ogni scala
-# Preset per dataset di dimensioni crescenti: usati come baseline sensata
 BREED_CONFIGS = {
     5: {
         "data_dir": "data/breeds_5",
@@ -132,17 +93,14 @@ BREED_CONFIGS = {
 def log_hparams_final(writer, hparams, metrics):
     """
     Log finale degli hyperparameters con metriche complete.
-    
-    Questa funzione crea un logging separato per gli hyperparameters finali,
-    seguendo l'approccio del collega per migliorare la visualizzazione TensorBoard.
-    
+
     Args:
         writer: SummaryWriter di TensorBoard
         hparams: Dictionary degli hyperparameters
         metrics: Dictionary delle metriche finali
     """
     try:
-        # Crea una sub-directory per hparam tuning come fa il collega
+        # Crea una sub-directory per hparam tuning 
         hparam_log_dir = os.path.join(writer.log_dir, "hparam_tuning")
         with SummaryWriter(hparam_log_dir) as hp_writer:
             hp_writer.add_hparams(hparams, metrics)
@@ -155,16 +113,13 @@ def log_hparams_final(writer, hparams, metrics):
     """
     Log finale degli hyperparameters con metriche complete.
     
-    Questa funzione crea un logging separato per gli hyperparameters finali,
-    seguendo l'approccio del collega per migliorare la visualizzazione TensorBoard.
-    
     Args:
         writer: SummaryWriter di TensorBoard
         hparams: Dictionary degli hyperparameters
         metrics: Dictionary delle metriche finali
     """
     try:
-        # Crea una sub-directory per hparam tuning come fa il collega
+        # Crea una sub-directory per hparam tuning
         hparam_log_dir = os.path.join(writer.log_dir, "hparam_tuning")
         with SummaryWriter(hparam_log_dir) as hp_writer:
             hp_writer.add_hparams(hparams, metrics)
@@ -356,7 +311,7 @@ def train_breeds(
         )
     model = model.to(device)  # Sposta pesi su GPU se disponibile
 
-    # 📊 TensorBoard Model Graph - Visualizza architettura modello (ispirato al collega)
+    # 📊 TensorBoard Model Graph - Visualizza architettura modello 
     try:
         # Prendi un sample batch per creare il graph
         sample_batch = next(iter(train_loader))[0][:1].to(device)  # 1 immagine del batch
@@ -625,7 +580,7 @@ def train_breeds(
     # Log iperparametri con metriche finali usando approccio migliorato
     print(f"\n📊 Salvando hyperparameters in TensorBoard...")
     
-    # Prepara metriche finali strutturate come il collega
+    # Prepara metriche finali strutturate
     final_metrics = {
         "hparam/final_val_acc": float(val_acc),
         "hparam/best_val_acc": float(best_val_acc), 
@@ -635,7 +590,7 @@ def train_breeds(
         "hparam/final_loss": float(avg_val_loss) if 'avg_val_loss' in locals() else 0.0,
     }
     
-    # Usa il sistema migliorato di logging (ispirato al collega)
+    # Usa il sistema migliorato di logging 
     log_hparams_final(writer, hparams, final_metrics)
 
     print(f"\n📈 Final Results:")

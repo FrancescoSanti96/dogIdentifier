@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 """
 Training binario per identificazione del mio cane (Australian Shepherd) vs altri cani.
-
-Questo script addestra un classificatore binario utilizzando gli split fisici
-creati da `src/prepare_data.py --binary`. Esegue training, validazione e test,
-con logging su TensorBoard e salvataggio del best model.
 """
 
 import os
@@ -32,9 +28,7 @@ from torch.utils.data import DataLoader
 def log_hparams_final(writer, hparams, metrics):
     """
     Log finale degli hyperparameters con metriche complete.
-    
-    Funzione ispirata all'approccio del collega per migliorare la visualizzazione
-    degli hyperparameters in TensorBoard con directory separata.
+
     
     Args:
         writer: SummaryWriter di TensorBoard
@@ -232,7 +226,7 @@ def my_dog_train(epochs_override=None, lr_override=None, dropout_override=None,
         )
     model = model.to(device)
 
-    # 📊 TensorBoard Model Graph - Visualizza architettura modello (come il collega)
+    # 📊 TensorBoard Model Graph - Visualizza architettura modello
     try:
         # Prendi un sample batch per creare il graph
         sample_batch = next(iter(train_loader))[0][:1].to(device)  # 1 immagine del batch
@@ -387,7 +381,7 @@ def my_dog_train(epochs_override=None, lr_override=None, dropout_override=None,
     # Log iperparametri con metriche finali usando approccio migliorato
     print(f"\n📊 Salvando hyperparameters in TensorBoard...")
     
-    # Prepara metriche finali strutturate come il collega
+    # Prepara metriche finali strutturate 
     final_metrics = {
         "hparam/final_val_acc": float(val_acc),
         "hparam/best_val_acc": float(best_val_acc),
@@ -396,7 +390,7 @@ def my_dog_train(epochs_override=None, lr_override=None, dropout_override=None,
         "hparam/final_train_acc": float(train_acc),
     }
     
-    # Usa il sistema migliorato di logging (ispirato al collega)
+    # Usa il sistema migliorato di logging 
     log_hparams_final(writer, hparams, final_metrics)
 
     print(f"🎯 FINAL RESULTS:")  # Riepilogo finale

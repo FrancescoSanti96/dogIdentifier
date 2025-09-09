@@ -3,14 +3,6 @@
 🐕 ANALISI MODELLI MULTICLASS - Dog Breed Classification
 Analisi matrice di confusione per modelli di classificazione razze (multi-classe).
 
-Uso:
-  python src/evaluate.py \
-    --model outputs/models/breeds_30/best_model.pth \
-    --data data/top30_balanced \
-    [--batch-size 32]
-
-Per modelli binari, usare invece:
-  python src/evaluate_binary.py --model outputs/my_dog/best_model.pth --data data/my_dog_vs_others_splits
 """
 
 import os
