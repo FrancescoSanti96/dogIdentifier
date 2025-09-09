@@ -3,7 +3,7 @@
 Sviluppare un sistema di classificazione delle razze canine con CNN da zero, focalizzandosi su:
 
 - Classificazione multi-classe (121 razze)
-- Identificazione personale del proprio cane una volta individuata la razza australian sheppard
+- Identificazione personale del proprio cane una volta individuata la razza australian shepherd
 
 ## ⚙️ **Setup Ambiente**
 
@@ -133,7 +133,7 @@ python src/train.py --breeds 30 --resume-from outputs/models/breeds_30/checkpoin
 ### **🐕 2. Training Binario "È MAGGIE?"**
 
 ```bash
-# Preparazione dati binari (346 immagini: 181 Maggie + 165 others)
+# Preparazione dati binari (236 immagini: 118 Maggie + 118 altri)
 python src/prepare_data.py --binary
 
 # Training modello binario (69.8% test accuracy)
@@ -276,7 +276,7 @@ python src/train.py --breeds 121 --resume-from outputs/checkpoints/checkpoint_ep
 python src/prepare_data.py --binary
 
 # Verifica dataset
-find data/my_dog_vs_others -name "*.jpg" | wc -l  # ~343 immagini
+find data/my_dog_vs_others -name "*.jpg" | wc -l  # 236 immagini
 
 
 #### **Training con Profiles (Sistema Coerente)**
@@ -329,9 +329,9 @@ python test/test_validation.py
 
 #### **Performance Binaria "È MAGGIE?"**
 
-- **🥇 Ultra-Aggressive (Dataset Esteso)**: **77.36%** test accuracy ⭐
-- **🥈 Final (Dataset Esteso)**: 75.47% test accuracy
-- **🥉 Ultra-Aggressive (Small)**: 68.29% test accuracy
+- **🥇 Modello Finale**: **69.8%** test accuracy validata ⭐
+- **🥈 Validation durante training**: 77.36% accuracy
+- **🥉 ROC AUC**: 0.783 (buona discriminazione)
 
 #### **Scoperta Scientifica**
 
@@ -345,7 +345,7 @@ python test/test_validation.py
 | ------------------- | ----------------- | ------------------- | ------------------ |
 | **5 razze (TL)**    | 80%               | 95%                 | **99.05%** ✅      |
 | **30 razze (TL)**   | 70%               | 85%                 | **89.31%** ✅      |
-| **Binary "Maggie"** | 60%               | 70%                 | **77.36%** ✅      |
+| **Binary "Maggie"** | 60%               | 70%                 | **69.8%** ✅       |
 | **FROM SCRATCH**    | 30%               | 50%                 | **46.67%** ✅      |
 
 ---

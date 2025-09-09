@@ -9,7 +9,7 @@
 Sviluppare un sistema di classificazione delle razze canine con CNN da zero, focalizzandosi su:
 
 - Classificazione multi-classe (121 razze)
-- Identificazione personale del proprio cane una volta individuata la razza australian sheppard
+- Identificazione personale del proprio cane una volta individuata la razza australian shepherd
 
 ### **1.2 Esplorazione e Fattibilità**
 
