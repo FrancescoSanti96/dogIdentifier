@@ -36,7 +36,7 @@ def analyze_confusion(
     model_path: str,
     data_dir: str,
     batch_size: int = 32,
-    outdir: str = "outputs/analysis",
+    outdir: str = None,
 ):
     """
     Analizza la matrice di confusione per modelli di classificazione multiclass.
@@ -60,7 +60,7 @@ def analyze_confusion(
         model_path: path al checkpoint (.pth) del modello multiclass
         data_dir: directory con gli split (train/val/test)
         batch_size: batch size per il test loader
-        outdir: directory output per grafici e report
+        outdir: directory output per grafici e report (None = auto-genera da nome modello/dataset)
 
     Returns:
         Dict con risultati analisi completa (confusion matrix, accuracies, errori)
@@ -70,6 +70,14 @@ def analyze_confusion(
     """
     print("🔍 ANALISI MODELLI MULTICLASS - Confusion Matrix")
     print("=" * 55)
+    
+    # Auto-genera cartella output se non specificata
+    if outdir is None:
+        model_name = os.path.basename(model_path).replace('.pth', '')
+        dataset_name = os.path.basename(data_dir.rstrip('/'))
+        outdir = f"outputs/analysis/multiclass_{dataset_name}_{model_name}"
+        
+    print(f"📁 Output directory: {outdir}")
 
     # Configurazione
     # Setup hardware: utilizza GPU se disponibile per inference veloce
@@ -432,8 +440,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--outdir",
-        default="outputs/analysis",
-        help="Directory di output per grafici e report",
+        default=None,
+        help="Directory di output per grafici e report (default: auto-generata da nome modello/dataset)",
     )
     parser.add_argument(
         "--config",
