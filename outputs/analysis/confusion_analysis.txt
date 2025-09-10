@@ -1,0 +1,266 @@
+ANALISI MATRICE DI CONFUSIONE
+==================================================
+
+ACCURATEZZA PER CLASSE:
+Afghan_hound             : 100.0% (23/23)
+African_hunting_dog      : 100.0% (23/23)
+Australian_Shepherd_Dog  : 100.0% (23/23)
+Saint_Bernard            : 100.0% (23/23)
+Bedlington_terrier       :  95.7% (22/23)
+Mexican_hairless         :  95.7% (22/23)
+clumber                  :  95.7% (22/23)
+dhole                    :  95.7% (22/23)
+keeshond                 :  95.7% (22/23)
+Border_terrier           :  91.3% (21/23)
+Brabancon_griffon        :  91.3% (21/23)
+Ibizan_hound             :  91.3% (21/23)
+Irish_setter             :  91.3% (21/23)
+Leonberg                 :  91.3% (21/23)
+Maltese_dog              :  91.3% (21/23)
+Rottweiler               :  91.3% (21/23)
+Samoyed                  :  91.3% (21/23)
+Weimaraner               :  91.3% (21/23)
+dingo                    :  91.3% (21/23)
+kuvasz                   :  91.3% (21/23)
+malinois                 :  91.3% (21/23)
+schipperke               :  91.3% (21/23)
+Border_collie            :  87.0% (20/23)
+Gordon_setter            :  87.0% (20/23)
+Irish_terrier            :  87.0% (20/23)
+Irish_water_spaniel      :  87.0% (20/23)
+Japanese_spaniel         :  87.0% (20/23)
+Norwegian_elkhound       :  87.0% (20/23)
+Pembroke                 :  87.0% (20/23)
+Pomeranian               :  87.0% (20/23)
+Scottish_deerhound       :  87.0% (20/23)
+Shetland_sheepdog        :  87.0% (20/23)
+Sussex_spaniel           :  87.0% (20/23)
+West_Highland_white_terrier:  87.0% (20/23)
+beagle                   :  87.0% (20/23)
+chow                     :  87.0% (20/23)
+golden_retriever         :  87.0% (20/23)
+miniature_pinscher       :  87.0% (20/23)
+otterhound               :  87.0% (20/23)
+Airedale                 :  82.6% (19/23)
+Bernese_mountain_dog     :  82.6% (19/23)
+English_springer         :  82.6% (19/23)
+Greater_Swiss_Mountain_dog:  82.6% (19/23)
+Kerry_blue_terrier       :  82.6% (19/23)
+Old_English_sheepdog     :  82.6% (19/23)
+Pekinese                 :  82.6% (19/23)
+Scotch_terrier           :  82.6% (19/23)
+Sealyham_terrier         :  82.6% (19/23)
+black-and-tan_coonhound  :  82.6% (19/23)
+borzoi                   :  82.6% (19/23)
+flat-coated_retriever    :  82.6% (19/23)
+komondor                 :  82.6% (19/23)
+miniature_schnauzer      :  82.6% (19/23)
+papillon                 :  82.6% (19/23)
+vizsla                   :  82.6% (19/23)
+Blenheim_spaniel         :  78.3% (18/23)
+Boston_bull              :  78.3% (18/23)
+Brittany_spaniel         :  78.3% (18/23)
+Doberman                 :  78.3% (18/23)
+English_foxhound         :  78.3% (18/23)
+German_short-haired_pointer:  78.3% (18/23)
+Italian_greyhound        :  78.3% (18/23)
+basenji                  :  78.3% (18/23)
+bull_mastiff             :  78.3% (18/23)
+cocker_spaniel           :  78.3% (18/23)
+curly-coated_retriever   :  78.3% (18/23)
+malamute                 :  78.3% (18/23)
+pug                      :  78.3% (18/23)
+Australian_terrier       :  73.9% (17/23)
+English_setter           :  73.9% (17/23)
+EntleBucher              :  73.9% (17/23)
+French_bulldog           :  73.9% (17/23)
+German_shepherd          :  73.9% (17/23)
+Irish_wolfhound          :  73.9% (17/23)
+Lakeland_terrier         :  73.9% (17/23)
+Staffordshire_bullterrier:  73.9% (17/23)
+affenpinscher            :  73.9% (17/23)
+bloodhound               :  73.9% (17/23)
+groenendael              :  73.9% (17/23)
+whippet                  :  73.9% (17/23)
+wire-haired_fox_terrier  :  73.9% (17/23)
+Dandie_Dinmont           :  69.6% (16/23)
+Newfoundland             :  69.6% (16/23)
+Rhodesian_ridgeback      :  69.6% (16/23)
+Saluki                   :  69.6% (16/23)
+Shih-Tzu                 :  69.6% (16/23)
+Tibetan_terrier          :  69.6% (16/23)
+Welsh_springer_spaniel   :  69.6% (16/23)
+Yorkshire_terrier        :  69.6% (16/23)
+briard                   :  69.6% (16/23)
+cairn                    :  69.6% (16/23)
+Bouvier_des_Flandres     :  65.2% (15/23)
+Tibetan_mastiff          :  65.2% (15/23)
+bluetick                 :  65.2% (15/23)
+soft-coated_wheaten_terrier:  65.2% (15/23)
+American_Staffordshire_terrier:  60.9% (14/23)
+Appenzeller              :  60.9% (14/23)
+Cardigan                 :  60.9% (14/23)
+Chesapeake_Bay_retriever :  60.9% (14/23)
+Chihuahua                :  60.9% (14/23)
+Lhasa                    :  60.9% (14/23)
+Norwich_terrier          :  60.9% (14/23)
+basset                   :  60.9% (14/23)
+boxer                    :  60.9% (14/23)
+giant_schnauzer          :  60.9% (14/23)
+redbone                  :  60.9% (14/23)
+toy_terrier              :  60.9% (14/23)
+Great_Dane               :  52.2% (12/23)
+miniature_poodle         :  52.2% (12/23)
+standard_poodle          :  52.2% (12/23)
+toy_poodle               :  52.2% (12/23)
+Norfolk_terrier          :  47.8% (11/23)
+silky_terrier            :  47.8% (11/23)
+Eskimo_dog               :  43.5% (10/23)
+Great_Pyrenees           :  43.5% (10/23)
+kelpie                   :  43.5% (10/23)
+standard_schnauzer       :  43.5% (10/23)
+Labrador_retriever       :  39.1% (9/23)
+Walker_hound             :  39.1% (9/23)
+Siberian_husky           :  34.8% (8/23)
+collie                   :  30.4% (7/23)
+
+ERRORI PIÙ COMUNI:
+Siberian_husky       → malamute            : 10 volte (43.5%)
+collie               → Border_collie       : 10 volte (43.5%)
+Lhasa                → Shih-Tzu            :  8 volte (34.8%)
+toy_poodle           → miniature_poodle    :  8 volte (34.8%)
+Great_Pyrenees       → kuvasz              :  7 volte (30.4%)
+standard_schnauzer   → miniature_schnauzer :  7 volte (30.4%)
+Cardigan             → Pembroke            :  6 volte (26.1%)
+silky_terrier        → Australian_terrier  :  6 volte (26.1%)
+silky_terrier        → Yorkshire_terrier   :  6 volte (26.1%)
+Eskimo_dog           → malamute            :  5 volte (21.7%)
+
+CLASSIFICATION REPORT:
+                                precision    recall  f1-score   support
+
+                  Afghan_hound      0.742     1.000     0.852        23
+           African_hunting_dog      0.958     1.000     0.979        23
+                      Airedale      0.760     0.826     0.792        23
+American_Staffordshire_terrier      0.667     0.609     0.636        23
+                   Appenzeller      0.700     0.609     0.651        23
+       Australian_Shepherd_Dog      0.697     1.000     0.821        23
+            Australian_terrier      0.567     0.739     0.642        23
+            Bedlington_terrier      0.917     0.957     0.936        23
+          Bernese_mountain_dog      0.905     0.826     0.864        23
+              Blenheim_spaniel      0.947     0.783     0.857        23
+                 Border_collie      0.588     0.870     0.702        23
+                Border_terrier      0.750     0.913     0.824        23
+                   Boston_bull      0.720     0.783     0.750        23
+          Bouvier_des_Flandres      0.682     0.652     0.667        23
+             Brabancon_griffon      0.808     0.913     0.857        23
+              Brittany_spaniel      0.750     0.783     0.766        23
+                      Cardigan      0.778     0.609     0.683        23
+      Chesapeake_Bay_retriever      0.933     0.609     0.737        23
+                     Chihuahua      0.737     0.609     0.667        23
+                Dandie_Dinmont      0.889     0.696     0.780        23
+                      Doberman      0.900     0.783     0.837        23
+              English_foxhound      0.720     0.783     0.750        23
+                English_setter      1.000     0.739     0.850        23
+              English_springer      0.731     0.826     0.776        23
+                   EntleBucher      0.810     0.739     0.773        23
+                    Eskimo_dog      0.588     0.435     0.500        23
+                French_bulldog      0.810     0.739     0.773        23
+               German_shepherd      0.895     0.739     0.810        23
+   German_short-haired_pointer      0.783     0.783     0.783        23
+                 Gordon_setter      0.952     0.870     0.909        23
+                    Great_Dane      0.750     0.522     0.615        23
+                Great_Pyrenees      0.714     0.435     0.541        23
+    Greater_Swiss_Mountain_dog      0.760     0.826     0.792        23
+                  Ibizan_hound      0.913     0.913     0.913        23
+                  Irish_setter      0.875     0.913     0.894        23
+                 Irish_terrier      0.800     0.870     0.833        23
+           Irish_water_spaniel      0.833     0.870     0.851        23
+               Irish_wolfhound      0.944     0.739     0.829        23
+             Italian_greyhound      0.581     0.783     0.667        23
+              Japanese_spaniel      0.741     0.870     0.800        23
+            Kerry_blue_terrier      0.704     0.826     0.760        23
+            Labrador_retriever      0.750     0.391     0.514        23
+              Lakeland_terrier      0.850     0.739     0.791        23
+                      Leonberg      0.913     0.913     0.913        23
+                         Lhasa      0.467     0.609     0.528        23
+                   Maltese_dog      0.913     0.913     0.913        23
+              Mexican_hairless      0.846     0.957     0.898        23
+                  Newfoundland      0.667     0.696     0.681        23
+               Norfolk_terrier      0.579     0.478     0.524        23
+            Norwegian_elkhound      0.870     0.870     0.870        23
+               Norwich_terrier      0.875     0.609     0.718        23
+          Old_English_sheepdog      0.760     0.826     0.792        23
+                      Pekinese      0.864     0.826     0.844        23
+                      Pembroke      0.714     0.870     0.784        23
+                    Pomeranian      0.833     0.870     0.851        23
+           Rhodesian_ridgeback      0.533     0.696     0.604        23
+                    Rottweiler      0.913     0.913     0.913        23
+                 Saint_Bernard      0.920     1.000     0.958        23
+                        Saluki      0.800     0.696     0.744        23
+                       Samoyed      0.808     0.913     0.857        23
+                Scotch_terrier      0.864     0.826     0.844        23
+            Scottish_deerhound      0.800     0.870     0.833        23
+              Sealyham_terrier      0.905     0.826     0.864        23
+             Shetland_sheepdog      0.769     0.870     0.816        23
+                      Shih-Tzu      0.533     0.696     0.604        23
+                Siberian_husky      0.615     0.348     0.444        23
+     Staffordshire_bullterrier      0.773     0.739     0.756        23
+                Sussex_spaniel      1.000     0.870     0.930        23
+               Tibetan_mastiff      0.833     0.652     0.732        23
+               Tibetan_terrier      0.727     0.696     0.711        23
+                  Walker_hound      0.692     0.391     0.500        23
+                    Weimaraner      0.583     0.913     0.712        23
+        Welsh_springer_spaniel      0.842     0.696     0.762        23
+   West_Highland_white_terrier      0.833     0.870     0.851        23
+             Yorkshire_terrier      0.444     0.696     0.542        23
+                 affenpinscher      0.739     0.739     0.739        23
+                       basenji      0.562     0.783     0.655        23
+                        basset      0.778     0.609     0.683        23
+                        beagle      0.606     0.870     0.714        23
+       black-and-tan_coonhound      0.633     0.826     0.717        23
+                    bloodhound      0.773     0.739     0.756        23
+                      bluetick      0.750     0.652     0.698        23
+                        borzoi      0.950     0.826     0.884        23
+                         boxer      0.737     0.609     0.667        23
+                        briard      0.640     0.696     0.667        23
+                  bull_mastiff      0.750     0.783     0.766        23
+                         cairn      0.800     0.696     0.744        23
+                          chow      1.000     0.870     0.930        23
+                       clumber      0.846     0.957     0.898        23
+                cocker_spaniel      0.900     0.783     0.837        23
+                        collie      0.778     0.304     0.438        23
+        curly-coated_retriever      0.783     0.783     0.783        23
+                         dhole      0.957     0.957     0.957        23
+                         dingo      0.700     0.913     0.792        23
+         flat-coated_retriever      0.679     0.826     0.745        23
+               giant_schnauzer      0.778     0.609     0.683        23
+              golden_retriever      0.741     0.870     0.800        23
+                   groenendael      0.810     0.739     0.773        23
+                      keeshond      0.957     0.957     0.957        23
+                        kelpie      0.625     0.435     0.513        23
+                      komondor      0.905     0.826     0.864        23
+                        kuvasz      0.724     0.913     0.808        23
+                      malamute      0.514     0.783     0.621        23
+                      malinois      0.913     0.913     0.913        23
+            miniature_pinscher      0.625     0.870     0.727        23
+              miniature_poodle      0.522     0.522     0.522        23
+           miniature_schnauzer      0.655     0.826     0.731        23
+                    otterhound      0.909     0.870     0.889        23
+                      papillon      0.826     0.826     0.826        23
+                           pug      0.818     0.783     0.800        23
+                       redbone      0.560     0.609     0.583        23
+                    schipperke      0.724     0.913     0.808        23
+                 silky_terrier      0.579     0.478     0.524        23
+   soft-coated_wheaten_terrier      0.750     0.652     0.698        23
+               standard_poodle      0.750     0.522     0.615        23
+            standard_schnauzer      0.667     0.435     0.526        23
+                    toy_poodle      0.522     0.522     0.522        23
+                   toy_terrier      0.875     0.609     0.718        23
+                        vizsla      0.704     0.826     0.760        23
+                       whippet      0.895     0.739     0.810        23
+       wire-haired_fox_terrier      0.944     0.739     0.829        23
+
+                      accuracy                          0.756      2783
+                     macro avg      0.769     0.756     0.754      2783
+                  weighted avg      0.769     0.756     0.754      2783
