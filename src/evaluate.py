@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """
-Analisi matrice di confusione per capire chi viene confuso con chi.
+🐕 ANALISI MODELLI MULTICLASS - Dog Breed Classification
+Analisi matrice di confusione per modelli di classificazione razze (multi-classe).
 
-Uso:
-  python src/evaluate.py \
-    --model outputs/top10/best_model.pth \
-    --data data/top10_balanced \
-    [--batch-size 32]
 """
 
 import os
@@ -32,43 +28,55 @@ def analyze_confusion(
     model_path: str,
     data_dir: str,
     batch_size: int = 32,
-    outdir: str = "outputs/analysis",
+    outdir: str = None,
 ):
     """
-    Analizza la matrice di confusione del modello per identificare pattern di errori
+    Analizza la matrice di confusione per modelli di classificazione multiclass.
 
-    Questa funzione è fondamentale per comprendere le performance del modello:
-    1. Carica modello e dataset di test
+    Questa funzione è ottimizzata per modelli di classificazione razze canine e esegue:
+    1. Carica modello e dataset di test multiclass
     2. Genera predizioni su test set separato (no data leakage)
     3. Calcola matrice di confusione e metriche per classe
     4. Identifica errori più comuni e pattern di confusione
-    5. Focus specifico su Australian Shepherd (obiettivo progetto)
+    5. Focus su performance estremi (migliori/peggiori classi)
     6. Genera visualizzazioni e report dettagliati
 
     Output Analysis:
     - Matrice di confusione normalizzata e assoluta
     - Accuracy per classe con ranking
-    - Top 10 errori più comuni
-    - Analisi specifica Australian Shepherd
-    - Grafici salvati per presentazione
+    - Top 10 errori più comuni tra classi
+    - Analisi dettagliata best/worst performing classes
+    - Grafici e report completi salvati
 
     Args:
-        model_path: path al checkpoint (.pth)
+        model_path: path al checkpoint (.pth) del modello multiclass
         data_dir: directory con gli split (train/val/test)
         batch_size: batch size per il test loader
-        outdir: directory output per grafici e report
+        outdir: directory output per grafici e report (None = auto-genera da nome modello/dataset)
 
     Returns:
-        Dict con risultati analisi (confusion matrix, accuracies, errori)
+        Dict con risultati analisi completa (confusion matrix, accuracies, errori)
+
+    Note:
+        Per modelli binari, utilizzare src/evaluate_binary.py invece.
     """
-    print("🔍 ANALISI MATRICE DI CONFUSIONE")
-    print("=" * 50)
+    print("🔍 ANALISI MODELLI MULTICLASS - Confusion Matrix")
+    print("=" * 55)
+    
+    # Auto-genera cartella output se non specificata
+    if outdir is None:
+        model_name = os.path.basename(model_path).replace('.pth', '')
+        dataset_name = os.path.basename(data_dir.rstrip('/'))
+        outdir = f"outputs/analysis/multiclass_{dataset_name}_{model_name}"
+        
+    print(f"📁 Output directory: {outdir}")
 
     # Configurazione
+    # Setup hardware: utilizza GPU se disponibile per inference veloce
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Dispositivo utilizzato: {device}")
+    print(f"🖥️  Device: {device}")
 
-    # Carica il modello salvato
+    # Carica il modello salvato con error handling
     if not os.path.exists(model_path):
         print(f"❌ Modello non trovato: {model_path}")
         return
@@ -76,7 +84,7 @@ def analyze_confusion(
     print(f"📂 Caricando modello da: {model_path}")
     checkpoint = torch.load(model_path, map_location=device)
 
-    # Informazioni dal checkpoint
+    # Estrai metadati dal checkpoint per ricostruire architettura
     num_classes = checkpoint["num_classes"]
     breed_names = checkpoint.get("breed_names")
 
@@ -227,66 +235,58 @@ def analyze_confusion(
             f"{true_breed:20} → {pred_breed:20}: {count:2d} volte ({percentage:4.1f}%)"
         )
 
-    # Focus Speciale su German_shepherd - il cane dell'utente!
-    # Analisi dettagliata: come viene riconosciuto il mio cane specifico
-    print(f"\n🔍 FOCUS SU GERMAN_SHEPHERD:")
-    print("-" * 40)
+    # Focus su Best & Worst Performing Classes
+    print(f"\n📊 FOCUS SU PERFORMANCE ESTREMI:")
+    print("-" * 45)
 
-    german_idx = None
-    if "German_shepherd" in breed_names:
-        german_idx = breed_names.index("German_shepherd")
-        print(f"German_shepherd è l'indice {german_idx}")
+    if len(class_accuracies) >= 2:
+        # Migliore performance
+        best_breed, best_acc, best_correct, best_total = class_accuracies[0]
+        print(f"\n🏆 MIGLIORE PERFORMANCE - {best_breed}:")
+        print(f"   Accuracy: {best_acc:.1f}% ({best_correct}/{best_total})")
 
-        # Analisi distribuzione predizioni per German_shepherd
-        print(f"\nCome viene classificato German_shepherd:")
-        total_german = cm[german_idx].sum()  # Totale campioni German_shepherd nel test
+        best_idx = breed_names.index(best_breed)
+        print(f"\n   Come viene classificato:")
         for j, pred_breed in enumerate(breed_names):
-            count = cm[german_idx, j]  # Quante volte German_shepherd → pred_breed
+            count = cm[best_idx, j]
             if count > 0:
-                percentage = count / total_german * 100
-                correct = (
-                    "✅" if j == german_idx else "❌"
-                )  # Correct vs wrong prediction
+                percentage = count / best_total * 100
+                correct = "✅" if j == best_idx else "❌"
                 print(
-                    f"  {correct} {pred_breed:20}: {count:2d}/{total_german} ({percentage:5.1f}%)"
+                    f"     {correct} {pred_breed[:20]:20}: {count:2d}/{best_total} ({percentage:5.1f}%)"
                 )
 
-        # Analisi inversa: quali razze vengono scambiate per German_shepherd (false positives)
-        print(f"\nChi viene classificato come German_shepherd:")
-        for i, true_breed in enumerate(breed_names):
-            count = cm[
-                i, german_idx
-            ]  # Campioni di razza i predetti come German_shepherd
-            if count > 0:
-                total_true = cm[i].sum()  # Totale campioni di questa razza vera
-                percentage = count / total_true * 100
-                correct = (
-                    "✅" if i == german_idx else "❌"
-                )  # True positive vs false positive
-                print(
-                    f"  {correct} {true_breed:20}: {count:2d}/{total_true} ({percentage:5.1f}%)"
-                )
+        # Peggiore performance
+        worst_breed, worst_acc, worst_correct, worst_total = class_accuracies[-1]
+        print(f"\n🔻 PEGGIORE PERFORMANCE - {worst_breed}:")
+        print(f"   Accuracy: {worst_acc:.1f}% ({worst_correct}/{worst_total})")
 
-    # Focus Speciale su Australian_Shepherd - seconda razza importante
-    print(f"\n⭐ FOCUS SU AUSTRALIAN_SHEPHERD:")
-    print("-" * 40)
-
-    australian_idx = None
-    if "Australian_Shepherd_Dog" in breed_names:
-        australian_idx = breed_names.index("Australian_Shepherd_Dog")
-        print(f"Australian_Shepherd_Dog è l'indice {australian_idx}")
-
-        # Analisi performance su Australian Shepherd (possibile confronto con German Shepherd)
-        print(f"\nCome viene classificato Australian_Shepherd:")
-        total_australian = cm[australian_idx].sum()
+        worst_idx = breed_names.index(worst_breed)
+        print(f"\n   Come viene classificato:")
         for j, pred_breed in enumerate(breed_names):
-            count = cm[australian_idx, j]  # Australian_shepherd → pred_breed
+            count = cm[worst_idx, j]
             if count > 0:
-                percentage = count / total_australian * 100
-                correct = "✅" if j == australian_idx else "❌"
+                percentage = count / worst_total * 100
+                correct = "✅" if j == worst_idx else "❌"
                 print(
-                    f"  {correct} {pred_breed:20}: {count:2d}/{total_australian} ({percentage:5.1f}%)"
+                    f"     {correct} {pred_breed[:20]:20}: {count:2d}/{worst_total} ({percentage:5.1f}%)"
                 )
+
+        # Analisi confusioni più comuni per worst class
+        print(f"\n   Principali confusioni di {worst_breed}:")
+        wrong_predictions = [
+            (j, cm[worst_idx, j])
+            for j in range(num_classes)
+            if j != worst_idx and cm[worst_idx, j] > 0
+        ]
+        wrong_predictions.sort(key=lambda x: x[1], reverse=True)
+
+        for j, count in wrong_predictions[:3]:  # Top 3 confusioni
+            pred_breed = breed_names[j]
+            percentage = count / worst_total * 100
+            print(
+                f"     → Confusa con {pred_breed[:20]:20}: {count:2d} volte ({percentage:5.1f}%)"
+            )
 
     # Visualizzazione grafica
     print(f"\n📊 Creando visualizzazione...")
@@ -335,21 +335,24 @@ def analyze_confusion(
     plt.title("Accuracy per Classe")
     plt.xlim(0, 100)
 
-    # Aggiungi linee di target
+    # Linee di riferimento per performance
+    overall_acc = sum(accuracies) / len(accuracies) if accuracies else 0
     plt.axvline(
-        x=60.9,
+        x=overall_acc,
         color="blue",
         linestyle="--",
         alpha=0.7,
-        label="Target Australian (60.9%)",
+        label=f"Media Overall ({overall_acc:.1f}%)",
     )
-    plt.axvline(
-        x=66.2,
-        color="purple",
-        linestyle="--",
-        alpha=0.7,
-        label="Target Overall (66.2%)",
-    )
+    if accuracies:
+        best_acc = max(accuracies)
+        plt.axvline(
+            x=best_acc,
+            color="green",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Best Class ({best_acc:.1f}%)",
+        )
     plt.legend()
 
     # Distribuzione campioni
@@ -429,8 +432,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--outdir",
-        default="outputs/analysis",
-        help="Directory di output per grafici e report",
+        default=None,
+        help="Directory di output per grafici e report (default: auto-generata da nome modello/dataset)",
     )
     parser.add_argument(
         "--config",

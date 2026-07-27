@@ -1,0 +1,45 @@
+🐕 BINARY MODEL ANALYSIS REPORT
+============================================================
+
+MODEL: best_model.pth
+DATASET: data/my_dog_vs_others_splits
+TEST SAMPLES: 53
+CLASSES: ['Altri', 'Maggie']
+
+📊 PERFORMANCE METRICS:
+------------------------------
+Overall Accuracy: 69.81%
+
+ALTRI:
+  Precision: 68.0%
+  Recall:    68.0%
+  F1-Score:  68.0%
+  Support:   25 samples
+
+MAGGIE:
+  Precision: 71.4%
+  Recall:    71.4%
+  F1-Score:  71.4%
+  Support:   28 samples
+
+📋 CONFUSION MATRIX:
+--------------------
+True\Pred    Altri    Maggie  
+Altri        17       8       
+Maggie       8        20      
+
+📈 CURVE METRICS:
+---------------
+ROC AUC:  0.783
+PR AUC:   0.775
+
+🎯 CONFIDENCE ANALYSIS:
+----------------------
+Average confidence (correct): 73.2%
+Average confidence (wrong):   62.4%
+
+🔍 ERROR ANALYSIS:
+----------------
+Misclassified: 16/53 (30.2%)
+False Positives: 8
+False Negatives: 8

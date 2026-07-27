@@ -2,20 +2,25 @@
 """
 Script per lanciare TensorBoard facilmente
 Mostra tutti i training runs disponibili
+
+Usage:
+    python scripts/launch_tensorboard.py              # Training razze (default)
+    python scripts/launch_tensorboard.py --mydog      # Training binario "È MAGGIE?"
 """
 
 import os
 import subprocess
 import sys
+import argparse
 from pathlib import Path
 
-def launch_tensorboard():
+def launch_tensorboard(log_dir="outputs/tensorboard"):
     """Lancia TensorBoard con tutti i logs disponibili"""
     
-    tensorboard_dir = Path('outputs/tensorboard')
+    tensorboard_dir = Path(log_dir)
     
     if not tensorboard_dir.exists():
-        print("❌ Directory outputs/tensorboard non trovata!")
+        print(f"❌ Directory {log_dir} non trovata!")
         print("   Esegui prima un training con TensorBoard logging")
         return
     
@@ -23,12 +28,13 @@ def launch_tensorboard():
     runs = list(tensorboard_dir.glob('*'))
     
     if not runs:
-        print("❌ Nessun run TensorBoard trovato!")
+        print(f"❌ Nessun run TensorBoard trovato in {log_dir}!")
         print("   Esegui prima un training con TensorBoard logging")
         return
     
-    print("📊 TENSORBOARD LAUNCHER")
-    print("=" * 40)
+    training_type = "121 RAZZE" if "tensorboard_my_dog" not in log_dir else "BINARIO (MAGGIE)"
+    print(f"📊 TENSORBOARD LAUNCHER - {training_type}")
+    print("=" * 50)
     print(f"✅ Trovati {len(runs)} training runs:")
     
     for i, run_dir in enumerate(sorted(runs), 1):
@@ -60,5 +66,19 @@ def launch_tensorboard():
     except Exception as e:
         print(f"\n❌ Errore nel lanciare TensorBoard: {e}")
 
+def main():
+    parser = argparse.ArgumentParser(description="Launcher TensorBoard per Dog Breed Identifier")
+    parser.add_argument('--mydog', action='store_true', 
+                       help='Visualizza training binario "È MAGGIE?" invece di training razze')
+    
+    args = parser.parse_args()
+    
+    if args.mydog:
+        log_dir = "outputs/tensorboard_my_dog"
+    else:
+        log_dir = "outputs/tensorboard"
+    
+    launch_tensorboard(log_dir)
+
 if __name__ == "__main__":
-    launch_tensorboard()
+    main()

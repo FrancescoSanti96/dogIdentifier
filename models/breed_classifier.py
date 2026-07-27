@@ -43,11 +43,11 @@ class BreedClassifier(nn.Module):
         self.dropout_rate = dropout_rate
         self.use_batch_norm = use_batch_norm
 
-        # Feature extraction layers - Architettura VGG-like con miglioramenti moderni
+        # Feature extraction layers - 5 blocchi conv progressivi per gerarchia feature
         self.features = nn.Sequential(
-            # Blocco 1: 3 -> 64 canali (224x224 -> 112x112)
-            # Primo blocco: estrae feature di basso livello (edges, textures)
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),  # Mantiene spatial size
+            # Blocco 1: 3->64 canali (224x224 -> 112x112)  
+            # Estrae feature di basso livello: edges, texture, colori base
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),  # Preserva dimensioni spaziali
             nn.BatchNorm2d(64) if use_batch_norm else nn.Identity(),  # Normalizzazione
             nn.ReLU(inplace=True),  # Attivazione non-lineare
             nn.Conv2d(64, 64, kernel_size=3, padding=1),  # Doppia convoluzione
@@ -162,9 +162,7 @@ class BreedClassifier(nn.Module):
 
 
 class SimpleBreedClassifier(nn.Module):
-    """
-    Modello CNN semplificato per esperimenti di confronto
-    """
+    """Modello CNN semplificato per esperimenti rapidi e confronto."""
 
     def __init__(
         self,
@@ -247,18 +245,18 @@ def create_breed_classifier(
     freeze_backbone: bool = True,
 ) -> nn.Module:
     """
-    Funzione factory per creare classificatori di razze
+    Factory per creare un classificatore di razze.
 
     Args:
-        model_type: 'full' o 'simple'
-        num_classes: Numero di classi
-        dropout_rate: Tasso di dropout
-        use_batch_norm: Se utilizzare batch normalization
-        pretrained_backbone: Backbone pre-addestrato (es. 'resnet18')
-        freeze_backbone: Se congelare il backbone
+        model_type (str): 'full' o 'simple'
+        num_classes (int): Numero di classi in output
+        dropout_rate (float): Tasso di dropout nei layer fully-connected
+        use_batch_norm (bool): Se utilizzare batch normalization
+        pretrained_backbone (Optional[str]): Nome backbone pre-addestrato (es. 'resnet18')
+        freeze_backbone (bool): Se congelare i pesi del backbone
 
     Returns:
-        Modello inizializzato
+        nn.Module: Modello inizializzato
     """
     if pretrained_backbone:
         # Transfer Learning Path: utilizza modello pre-addestrato su ImageNet
@@ -311,13 +309,13 @@ def create_breed_classifier(
 
 def get_model_summary(model: nn.Module) -> str:
     """
-    Ottieni un riassunto dei parametri del modello
+    Ritorna un riassunto dei parametri del modello.
 
     Args:
-        model: Modello PyTorch
+        model (nn.Module): Modello PyTorch
 
     Returns:
-        Stringa riassuntiva
+        str: Stringa riassuntiva con totali e trainable params.
     """
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

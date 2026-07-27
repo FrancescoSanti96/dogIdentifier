@@ -31,15 +31,16 @@ class ConfigHelper:
         self.config = self._load_config()  # Carica immediatamente la configurazione
 
     def _load_config(self) -> Dict[str, Any]:
-        """Carica la configurazione dal file JSON"""
+        """Carica configurazione con gestione errori robusta"""
         if not self.config_path.exists():
-            # Se non esiste, ritorna config vuoto invece di errore
+            # Fallback sicuro: config vuoto se file mancante
             return {}
 
         try:
             with open(self.config_path, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
+            # Gestione file JSON corrotto: continua con config vuoto
             print(f"⚠️ Errore nel parsing di {self.config_path}, usando config vuoto")
             return {}
 

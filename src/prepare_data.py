@@ -7,6 +7,8 @@ Supporta la creazione di dataset bilanciati per diverse scale di razze.
 Usage:
     python src/prepare_data.py --breeds 10   # Prepara dataset 10 razze
     python src/prepare_data.py --breeds 30   # Prepara dataset 30 razze
+    python src/prepare_data.py --breeds 60   # Prepara dataset 60 razze
+    python src/prepare_data.py --breeds 90   # Prepara dataset 90 razze
     python src/prepare_data.py --breeds 121  # Prepara dataset 121 razze
 
 Features:
@@ -29,7 +31,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.config_helper import ConfigHelper
 
 
-# Configurazioni per diverse scale di razze
+# Configurazioni per preparazione dataset a diverse scale
+# Ogni configurazione specifica razze target e directory output per training progressivo
 BREED_CONFIGS = {
     "binary": {
         "output_dir": "data/my_dog_vs_others_splits",
@@ -41,11 +44,11 @@ BREED_CONFIGS = {
         "base_breeds": [
             "Australian_Shepherd_Dog",  # Target principale
             "Chihuahua",
-            "Japanese_spaniel", 
+            "Japanese_spaniel",
             "Norwich_terrier",
             "Siberian_husky",
         ],
-        "description": "5 razze baseline per test rapidi",
+        "description": "5 razze baseline per test rapidi e debug",
     },
     10: {
         "output_dir": "data/top10_balanced",
@@ -68,6 +71,16 @@ BREED_CONFIGS = {
         "base_breeds": None,  # Sarà calcolato automaticamente dalle top 30
         "description": "30 razze più popolari bilanciate",
     },
+    60: {
+        "output_dir": "data/top60_balanced",
+        "base_breeds": None,  # Sarà calcolato automaticamente dalle top 60
+        "description": "60 razze più popolari bilanciate",
+    },
+    90: {
+        "output_dir": "data/top90_balanced",
+        "base_breeds": None,  # Sarà calcolato automaticamente dalle top 90
+        "description": "90 razze più popolari bilanciate",
+    },
     121: {
         "output_dir": "data/full121_balanced",
         "base_breeds": None,  # Tutte le razze disponibili
@@ -76,104 +89,115 @@ BREED_CONFIGS = {
 }
 
 
-def prepare_binary_dataset(source_dir: str, output_dir: str, config_path: str = "config.json"):
+def prepare_binary_dataset(
+    source_dir: str, output_dir: str, config_path: str = "config.json"
+):
     """
-    Prepara il dataset binario my_dog vs others con split fisici
-    
+    Crea gli split fisici per il dataset binario my_dog vs others.
+
     Args:
-        source_dir: Directory sorgente (data/my_dog_vs_others)
-        output_dir: Directory di output per gli split
-        config_path: Percorso al file di configurazione
-    
+        source_dir (str): Directory sorgente (es. data/my_dog_vs_others)
+        output_dir (str): Directory di output per gli split
+        config_path (str): Percorso al file di configurazione
+
     Returns:
-        Dizionario con statistiche del dataset
+        dict: Statistiche del dataset creato
     """
     print("🐕 PREPARAZIONE DATASET BINARIO")
     print("===============================")
     print("🎯 Il mio Australian Shepherd vs Altri cani")
-    
+
     source_path = Path(source_dir)
     output_path = Path(output_dir)
-    
+
     if not source_path.exists():
         raise FileNotFoundError(f"Directory sorgente non trovata: {source_dir}")
-    
+
     # Pulisci directory output se esiste
     if output_path.exists():
         print(f"🧹 Pulizia directory esistente: {output_path}")
         shutil.rmtree(output_path)
-    
+
     # Crea struttura directory split
     for split in ["train", "val", "test"]:
         for class_name in ["maggie", "other"]:
             split_dir = output_path / split / class_name
             split_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Carica configurazione
     config = ConfigHelper(config_path)
     seed = config.get("train.seed", 42)
     random.seed(seed)
-    
+
     # Conta immagini per classe
     maggie_dir = source_path / "maggie"
     other_dir = source_path / "other"
-    
-    maggie_images = [f for f in maggie_dir.iterdir() if f.suffix.lower() in [".jpg", ".jpeg", ".png"]]
-    other_images = [f for f in other_dir.iterdir() if f.suffix.lower() in [".jpg", ".jpeg", ".png"]]
-    
+
+    maggie_images = [
+        f for f in maggie_dir.iterdir() if f.suffix.lower() in [".jpg", ".jpeg", ".png"]
+    ]
+    other_images = [
+        f for f in other_dir.iterdir() if f.suffix.lower() in [".jpg", ".jpeg", ".png"]
+    ]
+
     print(f"📊 Conteggio immagini:")
     print(f"   Maggie (il mio cane): {len(maggie_images)}")
     print(f"   Altri cani: {len(other_images)}")
-    
+
     # Split percentuali: 70% train, 15% val, 15% test
     def split_images(images, splits=[0.7, 0.15, 0.15]):
         random.shuffle(images)
         total = len(images)
-        
+
         train_end = int(total * splits[0])
         val_end = train_end + int(total * splits[1])
-        
+
         return {
             "train": images[:train_end],
-            "val": images[train_end:val_end], 
-            "test": images[val_end:]
+            "val": images[train_end:val_end],
+            "test": images[val_end:],
         }
-    
+
     # Esegui split per entrambe le classi
     maggie_splits = split_images(maggie_images)
     other_splits = split_images(other_images)
-    
+
     # Copia file negli split
     total_copied = 0
     split_stats = {}
-    
+
     for split in ["train", "val", "test"]:
         maggie_count = len(maggie_splits[split])
         other_count = len(other_splits[split])
-        
+
         split_stats[split] = {
             "maggie": maggie_count,
             "other": other_count,
-            "total": maggie_count + other_count
+            "total": maggie_count + other_count,
         }
-        
+
         # Copia immagini Maggie
         for img in maggie_splits[split]:
             dst = output_path / split / "maggie" / img.name
             shutil.copy2(img, dst)
             total_copied += 1
-        
+
         # Copia immagini Other
         for img in other_splits[split]:
             dst = output_path / split / "other" / img.name
             shutil.copy2(img, dst)
             total_copied += 1
-        
-        print(f"📁 {split.upper()}: {maggie_count} maggie + {other_count} other = {maggie_count + other_count} totali")
-    
+
+        print(
+            f"📁 {split.upper()}: {maggie_count} maggie + {other_count} other = {maggie_count + other_count} totali"
+        )
+
     # Calcola statistiche bilancimento
-    train_balance = abs(split_stats["train"]["maggie"] - split_stats["train"]["other"]) / split_stats["train"]["total"]
-    
+    train_balance = (
+        abs(split_stats["train"]["maggie"] - split_stats["train"]["other"])
+        / split_stats["train"]["total"]
+    )
+
     stats = {
         "dataset_type": "binary",
         "source_dir": str(source_path),
@@ -182,19 +206,19 @@ def prepare_binary_dataset(source_dir: str, output_dir: str, config_path: str = 
         "classes": 2,
         "splits": split_stats,
         "balance_metric": 1 - train_balance,  # 1 = perfetto, 0 = totalmente sbilanciato
-        "files_copied": total_copied
+        "files_copied": total_copied,
     }
-    
+
     print(f"\n✅ Dataset binario preparato con successo!")
     print(f"   Directory output: {output_path}")
     print(f"   Totale immagini: {stats['total_images']}")
     print(f"   Bilanciamento: {stats['balance_metric']:.3f}")
-    
+
     return stats
 
 
 def get_breed_image_counts(source_dir: Path) -> dict:
-    """Conta le immagini per ogni razza nel dataset sorgente"""
+    """Conta le immagini per ogni razza nel dataset sorgente."""
     breed_counts = {}
 
     for breed_dir in source_dir.iterdir():
@@ -213,7 +237,7 @@ def get_breed_image_counts(source_dir: Path) -> dict:
 def select_breeds_for_scale(
     source_dir: Path, num_breeds: int, base_breeds: list = None
 ) -> list:
-    """Seleziona le razze per il dataset in base alla scala richiesta"""
+    """Seleziona le razze per il dataset in base alla scala richiesta."""
     breed_counts = get_breed_image_counts(source_dir)
 
     if base_breeds:
@@ -263,8 +287,8 @@ def calculate_balanced_samples(breed_counts: dict, target_total: int = None) -> 
         breed_counts: Dizionario {breed_name: num_images}
         target_total: Numero totale target di immagini (opzionale)
 
-    Restituisce:
-        Dizionario {breed_name: num_samples_to_use}
+    Returns:
+        dict: Mapping {breed_name: num_samples_to_use}
     """
     if not breed_counts:
         return {}
@@ -300,7 +324,7 @@ def create_balanced_splits(
     val_ratio: float = 0.15,
     test_ratio: float = 0.15,
 ):
-    """Crea split bilanciati per le razze selezionate"""
+    """Crea split bilanciati per le razze selezionate."""
 
     print(f"📂 Creando dataset bilanciato in: {output_dir}")
     print(f"🎯 Razze selezionate: {len(selected_breeds)}")
@@ -443,7 +467,7 @@ def create_balanced_splits(
 def prepare_breeds_dataset(
     num_breeds: int, source_dir: str = "data/breeds", config_path: str = "config.json"
 ):
-    """Prepara dataset bilanciato per il numero specificato di razze"""
+    """Prepara dataset bilanciato per il numero specificato di razze."""
 
     if num_breeds not in BREED_CONFIGS:
         raise ValueError(
@@ -502,13 +526,13 @@ def prepare_breeds_dataset(
 
 def main():
     parser = argparse.ArgumentParser(description="Preparazione dataset bilanciati")
-    
+
     # Gruppo mutuamente esclusivo per tipo di dataset
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--breeds",
         type=int,
-        choices=[5, 10, 30, 121],
+        choices=[5, 10, 30, 60, 90, 121],
         help="Numero di razze per il dataset multiclasse",
     )
     group.add_argument(
@@ -516,7 +540,7 @@ def main():
         action="store_true",
         help="Prepara dataset binario my_dog vs others",
     )
-    
+
     parser.add_argument(
         "--source",
         type=str,
@@ -535,25 +559,27 @@ def main():
     try:
         if args.binary:
             # Dataset binario
-            source_dir = args.source if args.source != "data/breeds" else "data/my_dog_vs_others"
+            source_dir = (
+                args.source if args.source != "data/breeds" else "data/my_dog_vs_others"
+            )
             output_dir = "data/my_dog_vs_others_splits"
-            
+
             print("🐕 Preparazione dataset binario...")
             stats = prepare_binary_dataset(source_dir, output_dir, args.config)
-            
+
             print(f"\n✅ Preparazione completata con successo!")
             print(f"   Tipo: Dataset binario")
             print(f"   Classi: {stats['classes']}")
             print(f"   Immagini totali: {stats['total_images']:,}")
             print(f"   Bilanciamento: {stats['balance_metric']:.3f}")
-            
+
             print(f"\n💡 UTILIZZO:")
             print(f"   python src/my_dog_train.py  # Usa gli split preparati")
-            
+
         else:
             # Dataset multiclasse
             stats = prepare_breeds_dataset(args.breeds, args.source, args.config)
-            
+
             print(f"\n✅ Preparazione completata con successo!")
             print(f"   Razze: {stats['num_breeds']}")
             print(f"   Immagini totali: {stats['total_images']:,}")

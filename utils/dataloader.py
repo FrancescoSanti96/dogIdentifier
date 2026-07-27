@@ -73,31 +73,32 @@ class DogBreedDataset(Dataset):
 
     def _load_data(self, max_breeds: Optional[int] = None):
         """
-        Load image paths and labels from breed folders
+        Carica percorsi immagini e label dalle cartelle delle razze.
 
-        Questo metodo implementa il discovery automatico delle razze e la creazione
-        del mapping breed_name -> label_index. È fondamentale per la scalabilità
-        del progetto (5 -> 121 razze) e mantiene consistenza nell'ordinamento.
+        Questo metodo esegue il discovery delle cartelle razze e costruisce
+        il mapping `breed_name -> label_index`, mantenendo un ordinamento
+        consistente. È pensato per scalare senza modifiche da 5 a 121 razze.
 
-        Process:
-        1. Discovers all breed folders in data_dir (alphabetical order)
-        2. Optionally limits to max_breeds for testing
-        3. Loads all valid image files from each breed folder
-        4. Creates label mapping (breed_name -> index)
-        5. Validates dataset consistency and reports statistics
+        Passi:
+        1. Individua tutte le cartelle razze in `data_dir` (ordine alfabetico)
+        2. Opzionalmente limita a `max_breeds` per test rapidi
+        3. Carica i file immagine validi per ogni razza
+        4. Crea le etichette numeriche coerenti con l'ordine delle razze
+        5. Stampa statistiche sintetiche del dataset
 
         Args:
-            max_breeds (int, optional): Limit number of breeds for quick testing
+            max_breeds (int, optional): Limite massimo di razze (debug/test)
         """
-        # Ottieni tutte le cartelle razze
+        # Discovery automatico cartelle razze: escludi file nascosti e temp
         available_folders = {
             f.name: f
             for f in self.data_dir.iterdir()
-            if f.is_dir() and not f.name.startswith(".")
+            if f.is_dir() and not f.name.startswith(".")  # Ignora .DS_Store, .tmp, etc.
         }
 
-        # Se è fornito un sottoinsieme con ordine esplicito, applicalo
+        # Gestione subset razze: ordine esplicito vs alfabetico
         if self.allowed_breeds:
+            # Usa ordine specificato (per subset target come top_5, top_10)
             breed_folders = []
             for breed in self.allowed_breeds:
                 if breed in available_folders:
@@ -105,7 +106,7 @@ class DogBreedDataset(Dataset):
                 else:
                     print(f"⚠️  Allowed breed '{breed}' not found in {self.data_dir}")
         else:
-            # Default: ordine alfabetico per consistenza
+            # Default: ordine alfabetico per consistenza tra runs
             breed_folders = sorted(
                 list(available_folders.values()), key=lambda p: p.name
             )
@@ -113,7 +114,7 @@ class DogBreedDataset(Dataset):
         if not breed_folders:
             raise ValueError(f"No breed folders found in {self.data_dir}")
 
-        # Limita razze per test se specificato
+        # Limita razze per test rapidi se specificato (sovrascritto da allowed_breeds)
         if max_breeds and not self.allowed_breeds:
             breed_folders = breed_folders[:max_breeds]
             print(f"🔬 Uso solo le prime {max_breeds} razze per test")
@@ -145,13 +146,13 @@ class DogBreedDataset(Dataset):
 
     def _get_image_files(self, folder_path: Path) -> List[Path]:
         """
-        Get all valid image files from a folder
+        Ritorna tutti i file immagine validi presenti in una cartella.
 
         Args:
-            folder_path (Path): Path to breed folder
+            folder_path (Path): Percorso alla cartella della razza
 
         Returns:
-            List[Path]: List of valid image file paths
+            List[Path]: Percorsi dei file immagine trovati
         """
         supported_extensions = ["*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"]
         image_files = []
@@ -163,12 +164,12 @@ class DogBreedDataset(Dataset):
 
     def _validate_dataset(self):
         """
-        Validate dataset consistency and report statistics
+        Valida la consistenza del dataset e stampa statistiche chiave.
 
-        Checks:
-        - Minimum images per breed
-        - Dataset balance
-        - Potential issues
+        Controlli effettuati:
+        - Numero minimo di immagini per razza
+        - Sbilanciamento tra razze (rapporto max/min)
+        - Razze con più e meno immagini
         """
         if len(self.images) == 0:
             raise ValueError("No images loaded. Check your data directory structure.")
@@ -202,36 +203,36 @@ class DogBreedDataset(Dataset):
         )
 
     def get_breed_names(self) -> List[str]:
-        """Get list of breed names in order of label indices"""
+        """Ritorna la lista dei nomi delle razze nell'ordine delle label."""
         return self.breed_names.copy()
 
     def get_breed_distribution(self) -> Dict[str, int]:
         """
-        Get distribution of images per breed
+        Ritorna la distribuzione del numero immagini per razza.
 
         Returns:
-            Dict[str, int]: Mapping of breed_name -> image_count
+            Dict[str, int]: Mapping `breed_name -> image_count`.
         """
         breed_counts = Counter(self.labels)
         return {self.breed_names[idx]: count for idx, count in breed_counts.items()}
 
     def __len__(self) -> int:
-        """Return total number of images in dataset"""
+        """Numero totale di immagini nel dataset."""
         return len(self.images)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         """
-        Get image and label at specified index
+        Restituisce immagine e label all'indice specificato.
 
         Args:
-            idx (int): Index of the sample to retrieve
+            idx (int): Indice del campione da recuperare
 
         Returns:
-            Tuple[torch.Tensor, int]: (transformed_image, breed_label)
+            Tuple[torch.Tensor, int]: (immagine_trasformata, label_razza)
 
         Raises:
-            IndexError: If idx is out of range
-            IOError: If image cannot be loaded
+            IndexError: se `idx` è fuori range
+            IOError: se l'immagine non può essere caricata
         """
         if idx >= len(self.images):
             raise IndexError(
@@ -255,7 +256,7 @@ class DogBreedDataset(Dataset):
             raise IOError(f"Error loading image {img_path}: {e}")
 
     def __repr__(self) -> str:
-        """String representation of the dataset"""
+        """Rappresentazione testuale del dataset."""
         return (
             f"DogBreedDataset(num_images={len(self.images)}, "
             f"num_breeds={len(self.breed_names)}, "
@@ -264,7 +265,7 @@ class DogBreedDataset(Dataset):
 
 
 class MyDogDataset(Dataset):
-    """Dataset personalizzato per identificazione cane personale (classificazione binaria)"""
+    """Dataset personalizzato per identificazione cane personale (classificazione binaria)."""
 
     def __init__(self, data_dir: str, transform=None, my_dog_folder="my_dog", other_dogs_folder="other_dogs"):
         """
@@ -286,7 +287,7 @@ class MyDogDataset(Dataset):
         self._load_data()
 
     def _load_data(self):
-        """Load image paths and binary labels"""
+        """Carica percorsi immagini e label binarie."""
         my_dog_dir = self.data_dir / self.my_dog_folder
         other_dogs_dir = self.data_dir / self.other_dogs_folder
 
@@ -322,7 +323,7 @@ class MyDogDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        """Get image and binary label at index"""
+        """Ritorna immagine e label binaria all'indice specificato."""
         img_path = self.images[idx]
         label = self.labels[idx]
 
@@ -339,50 +340,25 @@ def get_transforms(
     image_size: Tuple[int, int] = (224, 224), augmentation_config: Optional[Dict] = None
 ) -> Tuple[transforms.Compose, transforms.Compose]:
     """
-    Crea trasformazioni per immagini di training e validazione
+    Crea pipeline di trasformazioni per training e validazione.
 
-    Questa funzione è cruciale per le performance del modello. Crea due pipeline
-    separate per massimizzare l'efficacia del training e la consistenza della validazione.
-
-    Design Philosophy:
-    1. Training transforms: Data augmentation per generalizzazione e robustezza
-    2. Validation transforms: Solo preprocessing (no augmentation) per risultati consistenti
-    3. ImageNet normalization: Compatibilità con transfer learning e best practices
-
-    Training Pipeline:
-    - RandomResizedCrop: Evita distorsioni aspect ratio + augmentation spaziale
-    - Horizontal flip: Simmetria naturale per cani (non cambia la razza)
-    - Rotation: Robustezza a orientamenti diversi (limitato per non distorcere)
-    - Color jittering: Robustezza a condizioni illuminazione diverse
-    - Normalization: ImageNet stats per compatibilità backbone pre-trained
-
-    Validation Pipeline:
-    - Resize(256) + CenterCrop(224): Preprocessing deterministico
-    - Normalization: Stesse stats del training per consistency
+    La pipeline di training include data augmentation opzionale per migliorare
+    generalizzazione e robustezza; quella di validazione esegue solo
+    preprocessing deterministico per risultati comparabili.
 
     Args:
-        image_size (Tuple[int, int]): Target image size (width, height)
-        augmentation_config (Dict, optional): Configuration for data augmentation
-            Expected keys:
-            - horizontal_flip (bool): Enable random horizontal flipping
-            - rotation (int): Maximum rotation degrees
-            - brightness_contrast (List[float]): [brightness_factor, contrast_factor]
-            - color_jitter (List[float]): [saturation, hue, -, -] (last two unused)
-            - random_resized_crop (bool): Use RandomResizedCrop vs Resize+RandomCrop
-            - rrc_scale (Tuple[float, float]): Scale range for RandomResizedCrop
-            - rrc_ratio (Tuple[float, float]): Aspect ratio range for RandomResizedCrop
+        image_size (Tuple[int, int]): Dimensione target immagine (width, height)
+        augmentation_config (Dict, optional): Configurazione augmentation. Chiavi attese:
+            - horizontal_flip (bool)
+            - rotation (int)
+            - brightness_contrast (List[float])
+            - color_jitter (List[float])
+            - random_resized_crop (bool)
+            - rrc_scale (Tuple[float, float])
+            - rrc_ratio (Tuple[float, float])
 
     Returns:
         Tuple[transforms.Compose, transforms.Compose]: (train_transform, val_transform)
-
-    Example:
-        >>> train_tf, val_tf = get_transforms((224, 224), {
-        ...     'horizontal_flip': True,
-        ...     'rotation': 15,
-        ...     'brightness_contrast': [0.8, 1.2],
-        ...     'random_resized_crop': True,
-        ...     'rrc_scale': (0.85, 1.0)
-        ... })
     """
     # Valori normalizzazione ImageNet - standard per la maggior parte dei modelli pre-addestrati
     IMAGENET_MEAN = [0.485, 0.456, 0.406]  # Medie canali RGB

@@ -21,7 +21,53 @@
     "num_epochs": 100,
     "early_stopping_patience": 10,
     "save_best_model": true,
-    "use_tensorboard": true
+    "use_tensorboard": true,
+    "binary": {
+      "default": {
+        "epochs": 30,
+        "learning_rate": 0.0003,
+        "dropout": 0.5,
+        "batch_size": 12,
+        "weight_decay": 0.0001,
+        "early_stopping_patience": 8
+      },
+      "baseline": {
+        "epochs": 20,
+        "learning_rate": 0.0005,
+        "dropout": 0.3,
+        "batch_size": 16,
+        "weight_decay": 0.0001,
+        "early_stopping_patience": 5,
+        "description": "PROCESSO.md FASE 11.2 - Configurazione conservativa"
+      },
+      "optimized": {
+        "epochs": 30,
+        "learning_rate": 0.0003,
+        "dropout": 0.5,
+        "batch_size": 12,
+        "weight_decay": 0.0001,
+        "early_stopping_patience": 8,
+        "description": "PROCESSO.md FASE 11.3 - Strategia anti-overfitting (sweet spot)"
+      },
+      "aggressive": {
+        "epochs": 25,
+        "learning_rate": 0.0003,
+        "dropout": 0.6,
+        "batch_size": 10,
+        "weight_decay": 0.0001,
+        "early_stopping_patience": 6,
+        "description": "PROCESSO.md FASE 11.6 - Data augmentation ultra-aggressiva"
+      },
+      "final": {
+        "epochs": 25,
+        "learning_rate": 0.0003,
+        "dropout": 0.5,
+        "batch_size": 12,
+        "weight_decay": 0.0001,
+        "early_stopping_patience": 8,
+        "description": "PROCESSO.md FASE 11.9 - Formula vincente su dataset esteso"
+      }
+    }
   },
   "augmentation": {
     "horizontal_flip": true,
@@ -37,23 +83,83 @@
     "default_eval_data_dir": "data/full121_balanced"
   },
   "profiles": {
-    "fast_debug": {
-      "EPOCHS": 2,
-      "BATCH_SIZE": 8,
-      "LR": 0.001
-    },
-    "full_121": {
+    "breeds_5": {
       "EPOCHS": 45,
       "PATIENCE": 10,
-      "LR": 0.0008,
-      "DROPOUT": 0.4,
-      "SPLITS_DIR": "data/full121_balanced"
+      "LR": 0.001,
+      "DROPOUT": 0.5,
+      "SPLITS_DIR": "data/breeds_5"
     },
-    "balanced_30": {
-      "EPOCHS": 20,
+    "breeds_10": {
+      "EPOCHS": 40,
       "PATIENCE": 8,
       "LR": 0.0008,
-      "SPLITS_DIR": "data/top30_balanced"
+      "DROPOUT": 0.5,
+      "SPLITS_DIR": "data/breeds_10"
+    },
+    "breeds_30": {
+      "EPOCHS": 35,
+      "PATIENCE": 8,
+      "LR": 0.0008,
+      "DROPOUT": 0.4,
+      "SPLITS_DIR": "data/breeds_30"
+    },
+    "breeds_60": {
+      "EPOCHS": 40,
+      "PATIENCE": 10,
+      "LR": 0.0005,
+      "DROPOUT": 0.4,
+      "SPLITS_DIR": "data/breeds_60"
+    },
+    "breeds_90": {
+      "EPOCHS": 45,
+      "PATIENCE": 10,
+      "LR": 0.0005,
+      "DROPOUT": 0.4,
+      "SPLITS_DIR": "data/breeds_90"
+    },
+    "breeds_121": {
+      "EPOCHS": 50,
+      "PATIENCE": 12,
+      "LR": 0.0003,
+      "DROPOUT": 0.3,
+      "SPLITS_DIR": "data/breeds_121"
+    },
+    "binary_baseline": {
+      "EPOCHS": 20,
+      "LR": 0.0005,
+      "DROPOUT": 0.3,
+      "BATCH_SIZE": 16,
+      "WEIGHT_DECAY": 0.0001,
+      "PATIENCE": 5,
+      "DESCRIPTION": "PROCESSO.md FASE 11.2 - Configurazione conservativa"
+    },
+    "binary_optimized": {
+      "EPOCHS": 30,
+      "LR": 0.0003,
+      "DROPOUT": 0.5,
+      "BATCH_SIZE": 12,
+      "WEIGHT_DECAY": 0.0001,
+      "PATIENCE": 8,
+      "DESCRIPTION": "PROCESSO.md FASE 11.3 - Strategia anti-overfitting (sweet spot)"
+    },
+    "binary_aggressive": {
+      "EPOCHS": 25,
+      "LR": 0.0003,
+      "DROPOUT": 0.6,
+      "BATCH_SIZE": 10,
+      "WEIGHT_DECAY": 0.0001,
+      "PATIENCE": 6,
+      "DESCRIPTION": "PROCESSO.md FASE 11.6 - Data augmentation ultra-aggressiva"
+    },
+    "binary_final": {
+      "EPOCHS": 25,
+      "LR": 0.0003,
+      "DROPOUT": 0.5,
+      "BATCH_SIZE": 12,
+      "WEIGHT_DECAY": 0.0001,
+      "PATIENCE": 8,
+      "DESCRIPTION": "PROCESSO.md FASE 11.9 - Formula vincente su dataset esteso"
     }
   }
 }
